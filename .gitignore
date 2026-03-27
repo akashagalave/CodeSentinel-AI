@@ -1,2 +1,43 @@
 venv
 venv/
+
+cat > .gitignore << 'EOF'
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+env/
+.env
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# DVC tracked — let DVC manage these
+data/raw/
+data/processed/
+artifacts/chroma_db/
+artifacts/bm25_index.pkl
+
+# MLflow
+mlruns/
+mlflow.db
+
+# Logs
+logs/
+*.log
+
+# Flags
+reingest.flag
+
+# OS
+.DS_Store
+Thumbs.db
+EOF
