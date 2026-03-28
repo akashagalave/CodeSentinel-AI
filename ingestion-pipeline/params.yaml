@@ -1,1 +1,82 @@
+# ingestion-pipeline/params.yaml
+# Central config for ALL 4 DVC pipeline stages
+# DVC reads this — agar koi value change karo toh wo stage automatically re-runs
 
+# ─── Stage 1: Repository Ingestion ────────────────────────────
+ingestion:
+  target_repos:
+    - "https://github.com/pallets/flask"
+    - "https://github.com/tiangolo/fastapi"
+    - "https://github.com/encode/httpx"
+    - "https://github.com/sqlalchemy/sqlalchemy"
+    - "https://github.com/pydantic/pydantic"
+    - "https://github.com/celery/celery"
+    - "https://github.com/requests/requests"
+    - "https://github.com/aio-libs/aiohttp"
+    - "https://github.com/boto/boto3"
+    - "https://github.com/psf/black"
+  target_languages:
+    - "python"
+  max_file_size_kb: 500
+  exclude_patterns:
+    - "test_*.py"
+    - "*_test.py"
+    - "conftest.py"
+    - "setup.py"
+    - "*.min.js"
+
+# ─── Stage 2: AST Parsing ─────────────────────────────────────
+parsing:
+  min_function_lines: 3
+  max_function_lines: 200
+  include_docstrings: true
+  include_neighbor_lines: 5
+  complexity_threshold_high: 10
+
+# ─── Stage 3: Index Building ──────────────────────────────────
+indexing:
+  embedding_model: "microsoft/codebert-base"
+  embedding_batch_size: 32
+  chromadb_collection: "codebase"
+
+# ─── Retrieval Config (used by Retrieval Service) ─────────────
+retrieval:
+  dense_top_k: 20
+  sparse_top_k: 20
+  hybrid_alpha: 0.6
+  rerank_top_k: 5
+  rerank_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+# ─── LLM Models (used by Agent Services) ──────────────────────
+models:
+  bug_hunter: "gpt-4o"
+  security_scanner: "gpt-4o"
+  perf_advisor: "gpt-4o-mini"
+
+# ─── Cost Optimization ────────────────────────────────────────
+cost:
+  max_tokens_per_agent: 6000
+  budget_per_review_usd: 0.06
+  cache_similarity_threshold: 0.92
+  cache_max_size: 500
+  llmlingua_target_ratio: 0.6
+
+# ─── Stage 4: Quality Gates ───────────────────────────────────
+quality:
+  ragas_faithfulness_threshold: 0.81
+  ragas_precision_threshold: 0.76
+  ragas_relevancy_threshold: 0.78
+  fp_rate_threshold: 0.25
+  golden_dataset_size: 30
+
+# ─── Agent Settings ───────────────────────────────────────────
+agents:
+  confidence_threshold: 0.75
+  critical_blocks_merge: true
+  max_findings_per_agent: 10
+  review_timeout_seconds: 45
+
+# ─── Monitoring ───────────────────────────────────────────────
+monitoring:
+  fp_rate_window_days: 7
+  cost_alert_daily_usd: 5.0

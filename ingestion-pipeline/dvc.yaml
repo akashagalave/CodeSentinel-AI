@@ -1,1 +1,61 @@
+# ingestion-pipeline/dvc.yaml
+# 4-stage reproducible pipeline
+# Run from project root: cd ingestion-pipeline && dvc repro
+# Or: dvc repro ingestion-pipeline/dvc.yaml
 
+stages:
+
+  repo_ingestion:
+    cmd: python src/repo_ingestion.py
+    deps:
+      - src/repo_ingestion.py
+      - params.yaml
+    params:
+      - ingestion
+    outs:
+      - ../data/raw:
+          cache: true
+
+  ast_parsing:
+    cmd: python src/ast_parser.py
+    deps:
+      - src/ast_parser.py
+      - src/code_chunker.py
+      - ../data/raw
+      - params.yaml
+    params:
+      - parsing
+    outs:
+      - ../data/processed:
+          cache: true
+
+  index_building:
+    cmd: python src/index_builder.py
+    deps:
+      - src/index_builder.py
+      - src/code_chunker.py
+      - ../data/processed
+      - params.yaml
+    params:
+      - indexing
+    outs:
+      - ../artifacts/chroma_db:
+          cache: true
+      - ../artifacts/bm25_index.pkl:
+          cache: true
+    metrics:
+      - ../reports/ingestion_report.json:
+          cache: false
+
+  index_evaluation:
+    cmd: python src/index_evaluation.py
+    deps:
+      - src/index_evaluation.py
+      - ../artifacts/chroma_db
+      - ../artifacts/bm25_index.pkl
+      - params.yaml
+    params:
+      - quality
+    metrics:
+      - ../reports/ragas_results.json:
+          cache: false
