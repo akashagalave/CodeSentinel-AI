@@ -1,0 +1,5 @@
+[core]
+    remote = codesentinel-s3
+['remote "codesentinel-s3"']
+    url = s3://codesentinel-dvc-akash/dvc-store
+    region = us-east-1
