@@ -1,0 +1,149 @@
+schema: '2.0'
+stages:
+  repo_ingestion:
+    cmd: python src/repo_ingestion.py
+    deps:
+    - path: params.yaml
+      hash: md5
+      md5: 3c606bff1056468f94c355ba47c63612
+      size: 3105
+    - path: src/repo_ingestion.py
+      hash: md5
+      md5: 7d259acb5c5996aed156b4a1cd47ef1a
+      size: 7733
+    params:
+      params.yaml:
+        ingestion:
+          target_repos:
+          - https://github.com/pallets/flask
+          - https://github.com/tiangolo/fastapi
+          - https://github.com/encode/httpx
+          - https://github.com/sqlalchemy/sqlalchemy
+          - https://github.com/pydantic/pydantic
+          - https://github.com/celery/celery
+          - https://github.com/requests/requests
+          - https://github.com/aio-libs/aiohttp
+          - https://github.com/boto/boto3
+          - https://github.com/psf/black
+          target_languages:
+          - python
+          max_file_size_kb: 500
+          exclude_patterns:
+          - test_*.py
+          - '*_test.py'
+          - conftest.py
+          - setup.py
+          - '*.min.js'
+    outs:
+    - path: ../data/raw
+      hash: md5
+      md5: d9dd06e904704883c3ab40b013e065d1.dir
+      size: 18665894
+      nfiles: 2053
+  ast_parsing:
+    cmd: python src/ast_parser.py
+    deps:
+    - path: ../data/raw
+      hash: md5
+      md5: d9dd06e904704883c3ab40b013e065d1.dir
+      size: 18665894
+      nfiles: 2053
+    - path: params.yaml
+      hash: md5
+      md5: 3c606bff1056468f94c355ba47c63612
+      size: 3105
+    - path: src/ast_parser.py
+      hash: md5
+      md5: c6545b463bfc491545469645e2f8e9c7
+      size: 11414
+    - path: src/code_chunker.py
+      hash: md5
+      md5: a2a3c8a3d723c7d9f862027aa0a448b9
+      size: 2743
+    params:
+      params.yaml:
+        parsing:
+          min_function_lines: 3
+          max_function_lines: 200
+          include_docstrings: true
+          include_neighbor_lines: 5
+          complexity_threshold_high: 10
+    outs:
+    - path: ../data/processed
+      hash: md5
+      md5: 34db4cd6cee444a9a1989d022ad67f20.dir
+      size: 41571171
+      nfiles: 1
+  index_building:
+    cmd: python src/index_builder.py
+    deps:
+    - path: ../data/processed
+      hash: md5
+      md5: 34db4cd6cee444a9a1989d022ad67f20.dir
+      size: 41571171
+      nfiles: 1
+    - path: params.yaml
+      hash: md5
+      md5: 3c606bff1056468f94c355ba47c63612
+      size: 3105
+    - path: src/code_chunker.py
+      hash: md5
+      md5: a2a3c8a3d723c7d9f862027aa0a448b9
+      size: 2743
+    - path: src/index_builder.py
+      hash: md5
+      md5: 9d024ac22d2384a0e453fc66b9d9dd9a
+      size: 7234
+    params:
+      params.yaml:
+        indexing:
+          embedding_model: all-MiniLM-L6-v2
+          embedding_batch_size: 64
+          chromadb_collection: codebase
+    outs:
+    - path: ../artifacts/bm25_index.pkl
+      hash: md5
+      md5: 38361908501259a3fed1c58cce7bcf2d
+      size: 9101389
+    - path: ../artifacts/chroma_db
+      hash: md5
+      md5: 39534494e4ba4f80cbf6c24d1da471d4.dir
+      size: 178993232
+      nfiles: 6
+    - path: ../reports/ingestion_report.json
+      hash: md5
+      md5: e5850d7c6754a3cc704c712d6ffedfa7
+      size: 1678
+  index_evaluation:
+    cmd: python src/index_evaluation.py
+    deps:
+    - path: ../artifacts/bm25_index.pkl
+      hash: md5
+      md5: 38361908501259a3fed1c58cce7bcf2d
+      size: 9101389
+    - path: ../artifacts/chroma_db
+      hash: md5
+      md5: 39534494e4ba4f80cbf6c24d1da471d4.dir
+      size: 178993232
+      nfiles: 6
+    - path: params.yaml
+      hash: md5
+      md5: 3c606bff1056468f94c355ba47c63612
+      size: 3105
+    - path: src/index_evaluation.py
+      hash: md5
+      md5: 81aa79bca175e1b37638cc04a200431d
+      size: 5428
+    params:
+      params.yaml:
+        quality:
+          ragas_faithfulness_threshold: 0.81
+          ragas_precision_threshold: 0.76
+          ragas_relevancy_threshold: 0.78
+          fp_rate_threshold: 0.25
+          golden_dataset_size: 30
+    outs:
+    - path: ../reports/ragas_results.json
+      hash: md5
+      md5: 14b0a67e587cc653537340399bd659f8
+      size: 288

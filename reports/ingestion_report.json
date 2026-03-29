@@ -1,0 +1,77 @@
+{
+  "repos_ingested": 10,
+  "total_files_extracted": 2053,
+  "total_lines_of_code": 518845,
+  "repo_stats": [
+    {
+      "repo": "pallets/flask",
+      "files_extracted": 53,
+      "files_skipped": 183,
+      "total_lines": 10388,
+      "errors": 0
+    },
+    {
+      "repo": "tiangolo/fastapi",
+      "files_extracted": 619,
+      "files_skipped": 2362,
+      "total_lines": 33007,
+      "errors": 0
+    },
+    {
+      "repo": "encode/httpx",
+      "files_extracted": 28,
+      "files_skipped": 97,
+      "total_lines": 8874,
+      "errors": 0
+    },
+    {
+      "repo": "sqlalchemy/sqlalchemy",
+      "files_extracted": 425,
+      "files_skipped": 496,
+      "total_lines": 259707,
+      "errors": 0
+    },
+    {
+      "repo": "pydantic/pydantic",
+      "files_extracted": 200,
+      "files_skipped": 573,
+      "total_lines": 62579,
+      "errors": 0
+    },
+    {
+      "repo": "celery/celery",
+      "files_extracted": 261,
+      "files_skipped": 559,
+      "total_lines": 46350,
+      "errors": 0
+    },
+    {
+      "repo": "requests/requests",
+      "files_extracted": 25,
+      "files_skipped": 107,
+      "total_lines": 6356,
+      "errors": 0
+    },
+    {
+      "repo": "aio-libs/aiohttp",
+      "files_extracted": 88,
+      "files_skipped": 347,
+      "total_lines": 28766,
+      "errors": 0
+    },
+    {
+      "repo": "boto/boto3",
+      "files_extracted": 51,
+      "files_skipped": 1208,
+      "total_lines": 9563,
+      "errors": 0
+    },
+    {
+      "repo": "psf/black",
+      "files_extracted": 303,
+      "files_skipped": 150,
+      "total_lines": 53255,
+      "errors": 0
+    }
+  ]
+}

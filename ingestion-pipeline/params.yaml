@@ -35,8 +35,8 @@ parsing:
 
 # ─── Stage 3: Index Building ──────────────────────────────────
 indexing:
-  embedding_model: "microsoft/codebert-base"
-  embedding_batch_size: 32
+  embedding_model: "all-MiniLM-L6-v2"
+  embedding_batch_size: 64
   chromadb_collection: "codebase"
 
 # ─── Retrieval Config (used by Retrieval Service) ─────────────
