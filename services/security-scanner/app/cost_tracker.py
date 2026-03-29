@@ -1,1 +1,86 @@
+# services/security-scanner/app/cost_tracker.py
+# Exact same as bug-hunter/app/cost_tracker.py
+# Copy-paste — same LLMOps cost control pattern
 
+import os
+import sys
+from pathlib import Path
+from prometheus_client import Histogram, Counter
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+from shared.logger import get_logger
+
+logger = get_logger("security_cost_tracker")
+
+cost_histogram = Histogram(
+    "llm_cost_usd", "LLM cost per call", ["service"],
+    buckets=[0.001, 0.005, 0.01, 0.02, 0.05, 0.10],
+)
+tokens_in_counter  = Counter("llm_tokens_in_total",  "Input tokens",  ["service"])
+tokens_out_counter = Counter("llm_tokens_out_total",  "Output tokens", ["service"])
+
+PRICES = {
+    "gpt-4o":      {"in": 0.0025, "out": 0.010},
+    "gpt-4o-mini": {"in": 0.00015, "out": 0.0006},
+}
+
+
+def count_tokens(text: str, model: str = "gpt-4o") -> int:
+    try:
+        import tiktoken
+        enc = tiktoken.encoding_for_model(model)
+        return len(enc.encode(text))
+    except Exception:
+        return len(text) // 4
+
+
+def compute_cost(tokens_in: int, tokens_out: int, model: str) -> float:
+    p = PRICES.get(model, PRICES["gpt-4o-mini"])
+    return (tokens_in * p["in"] + tokens_out * p["out"]) / 1000
+
+
+def log_cost(service_name: str, tokens_in: int, tokens_out: int, model: str) -> float:
+    cost = compute_cost(tokens_in, tokens_out, model)
+    cost_histogram.labels(service=service_name).observe(cost)
+    tokens_in_counter.labels(service=service_name).inc(tokens_in)
+    tokens_out_counter.labels(service=service_name).inc(tokens_out)
+
+    try:
+        from langfuse import Langfuse
+        lf = Langfuse(
+            public_key=os.getenv("LANGFUSE_PUBLIC_KEY", ""),
+            secret_key=os.getenv("LANGFUSE_SECRET_KEY", ""),
+            host=os.getenv("LANGFUSE_HOST", "https://us.cloud.langfuse.com"),
+        )
+        lf.score(name="cost_usd", value=cost, comment=service_name)
+    except Exception:
+        pass
+
+    logger.info(f"Cost: {service_name} | ${cost:.5f}")
+    return cost
+
+
+def compress_if_needed(text: str, max_tokens: int = 4000, model: str = "gpt-4o") -> str:
+    current = count_tokens(text, model)
+    if current <= max_tokens:
+        return text
+    try:
+        from llmlingua import PromptCompressor
+        compressor = PromptCompressor(
+            model_name="microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank",
+            use_llmlingua2=True,
+        )
+        result = compressor.compress_prompt(
+            text, rate=max_tokens / current,
+            force_tokens=["\n", "def ", "class ", "return "],
+        )
+        return result["compressed_prompt"]
+    except Exception:
+        lines, result_lines, total = text.split("\n"), [], 0
+        for line in lines:
+            lt = count_tokens(line, model)
+            if total + lt > max_tokens:
+                break
+            result_lines.append(line)
+            total += lt
+        return "\n".join(result_lines)
