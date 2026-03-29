@@ -1,8 +1,8 @@
-fastapi==0.115.6
-uvicorn==0.34.0
-chromadb==0.6.3
-sentence-transformers==3.4.1
-rank-bm25==0.2.2
-pydantic-settings==2.7.0
-python-dotenv==1.0.1
-prometheus-client==0.21.1
+fastapi
+uvicorn
+chromadb
+sentence-transformers
+rank-bm25
+pydantic-settings
+python-dotenv
+prometheus-client
