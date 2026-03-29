@@ -1,1 +1,125 @@
+name: Deploy Services
 
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/**"
+      - "shared/**"
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      gateway:          ${{ steps.filter.outputs.gateway }}
+      orchestrator:     ${{ steps.filter.outputs.orchestrator }}
+      retrieval:        ${{ steps.filter.outputs.retrieval }}
+      bug-hunter:       ${{ steps.filter.outputs.bug-hunter }}
+      security-scanner: ${{ steps.filter.outputs.security-scanner }}
+      perf-advisor:     ${{ steps.filter.outputs.perf-advisor }}
+      github-client:    ${{ steps.filter.outputs.github-client }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            gateway:
+              - 'services/gateway/**'
+              - 'shared/**'
+            orchestrator:
+              - 'services/orchestrator/**'
+              - 'shared/**'
+            retrieval:
+              - 'services/retrieval/**'
+              - 'shared/**'
+            bug-hunter:
+              - 'services/bug-hunter/**'
+              - 'shared/**'
+            security-scanner:
+              - 'services/security-scanner/**'
+              - 'shared/**'
+            perf-advisor:
+              - 'services/perf-advisor/**'
+              - 'shared/**'
+            github-client:
+              - 'services/github-client/**'
+              - 'shared/**'
+
+  deploy:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - name: gateway
+            port: 8000
+            changed: ${{ needs.detect-changes.outputs.gateway }}
+          - name: orchestrator
+            port: 8001
+            changed: ${{ needs.detect-changes.outputs.orchestrator }}
+          - name: retrieval
+            port: 8002
+            changed: ${{ needs.detect-changes.outputs.retrieval }}
+          - name: bug-hunter
+            port: 8003
+            changed: ${{ needs.detect-changes.outputs.bug-hunter }}
+          - name: security-scanner
+            port: 8004
+            changed: ${{ needs.detect-changes.outputs.security-scanner }}
+          - name: perf-advisor
+            port: 8005
+            changed: ${{ needs.detect-changes.outputs.perf-advisor }}
+          - name: github-client
+            port: 8006
+            changed: ${{ needs.detect-changes.outputs.github-client }}
+
+    steps:
+      - name: Skip if not changed
+        if: matrix.service.changed != 'true'
+        run: echo "No changes in ${{ matrix.service.name }} — skipping"
+
+      - uses: actions/checkout@v4
+        if: matrix.service.changed == 'true'
+
+      - name: Configure AWS
+        if: matrix.service.changed == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            us-east-1
+
+      - name: Login to ECR
+        if: matrix.service.changed == 'true'
+        run: |
+          aws ecr get-login-password --region us-east-1 | \
+          docker login --username AWS --password-stdin \
+          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+      - name: Build and push image
+        if: matrix.service.changed == 'true'
+        run: |
+          ECR=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+          SVC=${{ matrix.service.name }}
+          docker build \
+            -f services/$SVC/Dockerfile \
+            -t $ECR/codesentinel/$SVC:${{ github.sha }} \
+            -t $ECR/codesentinel/$SVC:latest \
+            .
+          docker push $ECR/codesentinel/$SVC:${{ github.sha }}
+          docker push $ECR/codesentinel/$SVC:latest
+
+      - name: Deploy to EKS
+        if: matrix.service.changed == 'true'
+        run: |
+          aws eks update-kubeconfig \
+            --region us-east-1 \
+            --name codesentinel-cluster
+          kubectl rollout restart \
+            deployment/${{ matrix.service.name }} \
+            -n codesentinel
+          kubectl rollout status \
+            deployment/${{ matrix.service.name }} \
+            -n codesentinel \
+            --timeout=300s

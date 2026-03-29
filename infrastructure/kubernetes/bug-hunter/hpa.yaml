@@ -1,1 +1,19 @@
-
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: bug-hunter-hpa
+  namespace: codesentinel
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: bug-hunter
+  minReplicas: 2
+  maxReplicas: 8       # Bug Hunter scales most — heaviest agent
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

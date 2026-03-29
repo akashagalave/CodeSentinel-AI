@@ -1,1 +1,56 @@
-
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: retrieval
+  namespace: codesentinel
+  labels:
+    app: retrieval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: retrieval
+  template:
+    metadata:
+      labels:
+        app: retrieval
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8002"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: retrieval
+          image: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/codesentinel/retrieval:latest
+          ports:
+            - containerPort: 8002
+          envFrom:
+            - secretRef:
+                name: codesentinel-secrets
+          volumeMounts:
+            - name: artifacts
+              mountPath: /app/artifacts
+              readOnly: true
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "3Gi"    # CodeBERT + ChromaDB + BM25
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 90   # CodeBERT load time
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 90
+            periodSeconds: 10
+      volumes:
+        - name: artifacts
+          persistentVolumeClaim:
+            claimName: artifacts-pvc

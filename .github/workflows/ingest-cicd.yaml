@@ -1,0 +1,62 @@
+name: Ingest Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ingestion-pipeline/**"
+      - "reingest.flag"
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install DVC + dependencies
+        run: |
+          pip install dvc dvc-s3
+          pip install -r ingestion-pipeline/requirements.txt
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            us-east-1
+
+      - name: Configure DVC remote
+        run: |
+          dvc remote add -d codesentinel-s3 s3://codesentinel-dvc-akash/dvc-store
+          dvc remote modify codesentinel-s3 region us-east-1
+
+      - name: Set environment
+        run: |
+          echo "GITHUB_TOKEN=${{ secrets.GH_TOKEN }}" >> $GITHUB_ENV
+          echo "DAGSHUB_REPO_OWNER=${{ secrets.DAGSHUB_REPO_OWNER }}" >> $GITHUB_ENV
+          echo "DAGSHUB_REPO_NAME=${{ secrets.DAGSHUB_REPO_NAME }}" >> $GITHUB_ENV
+
+      - name: Run DVC pipeline
+        working-directory: ingestion-pipeline
+        run: dvc repro
+
+      - name: Push index to S3
+        run: dvc push
+
+      - name: Auto-promote index if RAGAS passes
+        run: python scripts/auto_promote_index.py
+
+      - name: Clear reingest flag
+        run: |
+          if [ -f reingest.flag ]; then
+            git config user.email "ci@codesentinel.ai"
+            git config user.name "CodeSentinel CI"
+            git rm reingest.flag
+            git commit -m "ci: clear reingest flag after re-indexing"
+            git push
+          fi

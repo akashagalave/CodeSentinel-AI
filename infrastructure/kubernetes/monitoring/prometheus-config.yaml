@@ -1,0 +1,56 @@
+# Prometheus config — scrapes /metrics from all 7 services
+# Used by both docker-compose (local) and EKS (production)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+
+  # ── Local docker-compose targets ──────────────────────────────
+  - job_name: "gateway"
+    static_configs:
+      - targets: ["gateway:8000"]
+
+  - job_name: "orchestrator"
+    static_configs:
+      - targets: ["orchestrator:8001"]
+
+  - job_name: "retrieval"
+    static_configs:
+      - targets: ["retrieval:8002"]
+
+  - job_name: "bug-hunter"
+    static_configs:
+      - targets: ["bug-hunter:8003"]
+
+  - job_name: "security-scanner"
+    static_configs:
+      - targets: ["security-scanner:8004"]
+
+  - job_name: "perf-advisor"
+    static_configs:
+      - targets: ["perf-advisor:8005"]
+
+  - job_name: "github-client"
+    static_configs:
+      - targets: ["github-client:8006"]
+
+  # ── K8s pod discovery (used in EKS) ───────────────────────────
+  - job_name: "kubernetes-pods"
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: ["codesentinel"]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: "true"
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
