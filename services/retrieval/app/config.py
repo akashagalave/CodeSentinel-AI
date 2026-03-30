@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     chromadb_collection: str = "codebase"
 
     # Models
-    embedding_model: str = "microsoft/codebert-base"
+    embedding_model: str = "all-MiniLM-L6-v2"
     rerank_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
     # Retrieval
