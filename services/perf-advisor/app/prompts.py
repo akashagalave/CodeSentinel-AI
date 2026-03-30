@@ -26,7 +26,7 @@ STRICT RULES:
 
 Response format:
 [
-  {
+  {{
     "severity": "HIGH",
     "line_start": 23,
     "line_end": 28,
@@ -35,7 +35,7 @@ Response format:
     "fix_suggestion": "Use select_related() or prefetch_related() to load users in one query before the loop",
     "confidence": 0.90,
     "estimated_impact": "high"
-  }
+  }}
 ]"""
 
 PERF_HUMAN = """PR DIFF:

@@ -26,7 +26,7 @@ STRICT RULES:
 
 Response format (JSON array):
 [
-  {
+  {{
     "severity": "HIGH",
     "line_start": 42,
     "line_end": 45,
@@ -35,7 +35,7 @@ Response format (JSON array):
     "fix_suggestion": "Add null check: if user is None: raise ValueError('User not found')",
     "confidence": 0.92,
     "category": "null_dereference"
-  }
+  }}
 ]"""
 
 BUG_HUMAN = """PR DIFF (code being reviewed):

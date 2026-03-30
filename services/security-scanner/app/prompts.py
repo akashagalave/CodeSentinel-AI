@@ -24,7 +24,7 @@ STRICT RULES:
 
 Response format:
 [
-  {
+  {{
     "severity": "CRITICAL",
     "line_start": 15,
     "line_end": 18,
@@ -34,7 +34,7 @@ Response format:
     "confidence": 0.95,
     "owasp_category": "A03:2021 - Injection",
     "cwe_id": "CWE-89"
-  }
+  }}
 ]"""
 
 SECURITY_HUMAN = """PR DIFF:
