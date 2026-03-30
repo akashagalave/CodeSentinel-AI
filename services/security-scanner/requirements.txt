@@ -1,11 +1,10 @@
 fastapi
-uvicorn
+uvicorn[standard]
 langchain-openai
-langchain-core
 pydantic-settings
 python-dotenv
 prometheus-client
 tiktoken
-llmlingua
 langfuse
+openai
 semgrep

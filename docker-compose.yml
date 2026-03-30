@@ -1,13 +1,6 @@
-# docker-compose.yml
-# Run locally: docker-compose up --build
-# Stop: docker-compose down
-# Build context = project root for all services (shared/ accessible)
-
 version: "3.9"
 
 services:
-
-  # ── Retrieval Service (:8002) ─────────────────────────────────
   retrieval:
     build:
       context: .
@@ -16,16 +9,9 @@ services:
       - "8002:8002"
     env_file: .env
     volumes:
-      - ./artifacts:/app/artifacts:ro   # mount built index (read-only)
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 90s   # CodeBERT load time
+      - ./artifacts:/app/artifacts:ro
     restart: unless-stopped
 
-  # ── Gateway Service (:8000) ───────────────────────────────────
   gateway:
     build:
       context: .
@@ -35,18 +21,8 @@ services:
     env_file: .env
     environment:
       - ORCHESTRATOR_URL=http://orchestrator:8001
-    depends_on:
-      orchestrator:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
     restart: unless-stopped
 
-  # ── Orchestrator Service (:8001) ──────────────────────────────
   orchestrator:
     build:
       context: .
@@ -60,26 +36,8 @@ services:
       - SECURITY_SCANNER_URL=http://security-scanner:8004
       - PERF_ADVISOR_URL=http://perf-advisor:8005
       - GITHUB_CLIENT_URL=http://github-client:8006
-    depends_on:
-      retrieval:
-        condition: service_healthy
-      bug-hunter:
-        condition: service_healthy
-      security-scanner:
-        condition: service_healthy
-      perf-advisor:
-        condition: service_healthy
-      github-client:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
     restart: unless-stopped
 
-  # ── Bug Hunter (:8003) ────────────────────────────────────────
   bug-hunter:
     build:
       context: .
@@ -87,15 +45,8 @@ services:
     ports:
       - "8003:8003"
     env_file: .env
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
     restart: unless-stopped
 
-  # ── Security Scanner (:8004) ──────────────────────────────────
   security-scanner:
     build:
       context: .
@@ -103,15 +54,8 @@ services:
     ports:
       - "8004:8004"
     env_file: .env
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
     restart: unless-stopped
 
-  # ── Perf Advisor (:8005) ──────────────────────────────────────
   perf-advisor:
     build:
       context: .
@@ -119,15 +63,8 @@ services:
     ports:
       - "8005:8005"
     env_file: .env
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
     restart: unless-stopped
 
-  # ── GitHub Client (:8006) ─────────────────────────────────────
   github-client:
     build:
       context: .
@@ -135,36 +72,4 @@ services:
     ports:
       - "8006:8006"
     env_file: .env
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
     restart: unless-stopped
-
-  # ── Prometheus (:9090) ────────────────────────────────────────
-  prometheus:
-    image: prom/prometheus:v2.51.0
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./infrastructure/kubernetes/monitoring/prometheus-config.yaml:/etc/prometheus/prometheus.yml:ro
-    restart: unless-stopped
-
-  # ── Grafana (:3000) ───────────────────────────────────────────
-  grafana:
-    image: grafana/grafana:10.4.0
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
-      - GF_USERS_ALLOW_SIGN_UP=false
-    volumes:
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      - prometheus
-    restart: unless-stopped
-
-volumes:
-  grafana_data:

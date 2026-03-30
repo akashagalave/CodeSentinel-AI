@@ -1,7 +1,9 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
 fastapi
-uvicorn
-chromadb
+uvicorn[standard]
+chromadb==0.6.3
 sentence-transformers
+torch==2.3.1+cpu
 rank-bm25
 pydantic-settings
 python-dotenv

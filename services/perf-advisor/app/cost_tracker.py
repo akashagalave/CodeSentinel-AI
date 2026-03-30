@@ -1,7 +1,4 @@
 # services/perf-advisor/app/cost_tracker.py
-# Same pattern as bug-hunter and security-scanner
-# Only difference: service name = "perf-advisor"
-
 import os
 import sys
 from pathlib import Path
@@ -15,10 +12,10 @@ logger = get_logger("perf_cost_tracker")
 cost_histogram     = Histogram("llm_cost_usd", "LLM cost", ["service"],
                                buckets=[0.001, 0.005, 0.01, 0.02, 0.05, 0.10])
 tokens_in_counter  = Counter("llm_tokens_in_total",  "Input tokens",  ["service"])
-tokens_out_counter = Counter("llm_tokens_out_total",  "Output tokens", ["service"])
+tokens_out_counter = Counter("llm_tokens_out_total", "Output tokens", ["service"])
 
 PRICES = {
-    "gpt-4o":      {"in": 0.0025, "out": 0.010},
+    "gpt-4o":      {"in": 0.0025,  "out": 0.010},
     "gpt-4o-mini": {"in": 0.00015, "out": 0.0006},
 }
 
@@ -42,7 +39,6 @@ def log_cost(service_name: str, tokens_in: int, tokens_out: int, model: str) -> 
     cost_histogram.labels(service=service_name).observe(cost)
     tokens_in_counter.labels(service=service_name).inc(tokens_in)
     tokens_out_counter.labels(service=service_name).inc(tokens_out)
-
     try:
         from langfuse import Langfuse
         lf = Langfuse(
@@ -53,32 +49,20 @@ def log_cost(service_name: str, tokens_in: int, tokens_out: int, model: str) -> 
         lf.score(name="cost_usd", value=cost, comment=service_name)
     except Exception:
         pass
-
-    logger.info(f"Cost: {service_name} | ${cost:.5f}")
+    logger.info(f"Cost: {service_name} | ${cost:.5f} | in={tokens_in} out={tokens_out}")
     return cost
 
 
-def compress_if_needed(text: str, max_tokens: int = 3500, model: str = "gpt-4o-mini") -> str:
+def compress_if_needed(text: str, max_tokens: int = 4000, model: str = "gpt-4o-mini") -> str:
     current = count_tokens(text, model)
     if current <= max_tokens:
         return text
-    try:
-        from llmlingua import PromptCompressor
-        compressor = PromptCompressor(
-            model_name="microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank",
-            use_llmlingua2=True,
-        )
-        result = compressor.compress_prompt(
-            text, rate=max_tokens / current,
-            force_tokens=["\n", "def ", "class ", "for ", "while "],
-        )
-        return result["compressed_prompt"]
-    except Exception:
-        lines, result_lines, total = text.split("\n"), [], 0
-        for line in lines:
-            lt = count_tokens(line, model)
-            if total + lt > max_tokens:
-                break
-            result_lines.append(line)
-            total += lt
-        return "\n".join(result_lines)
+    lines = text.split("\n")
+    result_lines, total = [], 0
+    for line in lines:
+        lt = count_tokens(line, model)
+        if total + lt > max_tokens:
+            break
+        result_lines.append(line)
+        total += lt
+    return "\n".join(result_lines)

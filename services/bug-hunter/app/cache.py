@@ -1,14 +1,6 @@
 # services/bug-hunter/app/cache.py
-"""
-GPTCache — semantic deduplication.
-
-When same PR is re-reviewed after a minor fix,
-the diff is very similar. Instead of calling GPT-4o again,
-GPTCache returns the cached response.
-
-Result: 50%+ cache hit rate on re-reviews.
-Cost saving: same as skipping the API call entirely.
-"""
+# Simple in-memory cache — no heavy dependencies
+import hashlib
 import sys
 from pathlib import Path
 
@@ -17,29 +9,28 @@ from shared.logger import get_logger
 
 logger = get_logger("bug_hunter_cache")
 
-_initialized = False
+_cache: dict = {}
+_hits = 0
+_misses = 0
 
 
 def initialize_cache(similarity_threshold: float = 0.92, max_size: int = 500):
-    """Initialize GPTCache at service startup."""
-    global _initialized
-    if _initialized:
-        return
+    logger.info("Simple in-memory cache initialized")
 
-    try:
-        from gptcache import cache
-        from gptcache.adapter.api import init_similar_cache
 
-        init_similar_cache(
-            similarity_threshold=similarity_threshold,
-            max_size=max_size,
-        )
-        _initialized = True
-        logger.info(
-            f"GPTCache initialized — "
-            f"threshold={similarity_threshold}, max_size={max_size}"
-        )
-    except Exception as e:
-        # Cache failure should NOT crash the service
-        # Just log warning and continue without caching
-        logger.warning(f"GPTCache init failed: {e} — running without cache")
+def get_cached(key: str) -> dict | None:
+    global _hits, _misses
+    h = hashlib.md5(key.encode()).hexdigest()
+    if h in _cache:
+        _hits += 1
+        logger.info(f"Cache HIT — hits={_hits} misses={_misses}")
+        return _cache[h]
+    _misses += 1
+    return None
+
+
+def set_cached(key: str, value: dict):
+    h = hashlib.md5(key.encode()).hexdigest()
+    _cache[h] = value
+    if len(_cache) % 50 == 0:
+        logger.info(f"Cache size: {len(_cache)}")
