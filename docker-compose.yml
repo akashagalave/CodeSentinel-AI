@@ -9,7 +9,7 @@ services:
       - "8002:8002"
     env_file: .env
     volumes:
-      - ./artifacts:/app/artifacts:ro
+      - ./artifacts:/app/artifacts
     restart: unless-stopped
 
   gateway:
