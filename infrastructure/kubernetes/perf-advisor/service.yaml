@@ -1,1 +1,16 @@
-
+apiVersion: v1
+kind: Service
+metadata:
+  name: perf-advisor-svc
+  namespace: codesentinel
+  labels:
+    app: perf-advisor
+    app.kubernetes.io/part-of: codesentinel
+spec:
+  selector:
+    app: perf-advisor
+  ports:
+    - name: http
+      port: 8005
+      targetPort: 8005
+  type: ClusterIP

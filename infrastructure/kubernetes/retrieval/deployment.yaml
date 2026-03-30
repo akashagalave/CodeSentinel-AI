@@ -5,6 +5,7 @@ metadata:
   namespace: codesentinel
   labels:
     app: retrieval
+    app.kubernetes.io/part-of: codesentinel
 spec:
   replicas: 1
   selector:
@@ -14,27 +15,53 @@ spec:
     metadata:
       labels:
         app: retrieval
+        app.kubernetes.io/part-of: codesentinel
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8002"
         prometheus.io/path: "/metrics"
     spec:
+      initContainers:
+        - name: download-artifacts
+          image: amazon/aws-cli:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Downloading ChromaDB index from S3..."
+              aws s3 cp s3://codesentinel-dvc-akash/artifacts/chroma_db /artifacts/chroma_db --recursive
+              echo "Downloading BM25 index from S3..."
+              aws s3 cp s3://codesentinel-dvc-akash/artifacts/bm25_index.pkl /artifacts/bm25_index.pkl
+              echo "All artifacts downloaded!"
+          env:
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+          volumeMounts:
+            - name: artifacts
+              mountPath: /artifacts
       containers:
         - name: retrieval
-          image: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/codesentinel/retrieval:latest
+          image: 618015514032.dkr.ecr.us-east-1.amazonaws.com/codesentinel/retrieval:latest
           ports:
             - containerPort: 8002
+              name: http
           envFrom:
             - secretRef:
                 name: codesentinel-secrets
+          env:
+            - name: CHROMADB_PATH
+              value: "/app/artifacts/chroma_db"
+            - name: BM25_INDEX_PATH
+              value: "/app/artifacts/bm25_index.pkl"
+            - name: CHROMADB_COLLECTION
+              value: "codebase"
           volumeMounts:
             - name: artifacts
               mountPath: /app/artifacts
-              readOnly: true
           resources:
             requests:
               cpu: "500m"
-              memory: "3Gi"    # CodeBERT + ChromaDB + BM25
+              memory: "3Gi"
             limits:
               cpu: "2000m"
               memory: "4Gi"
@@ -42,14 +69,16 @@ spec:
             httpGet:
               path: /health
               port: 8002
-            initialDelaySeconds: 90   # CodeBERT load time
+            initialDelaySeconds: 120
             periodSeconds: 30
+            failureThreshold: 5
           readinessProbe:
             httpGet:
               path: /health
               port: 8002
-            initialDelaySeconds: 90
+            initialDelaySeconds: 120
             periodSeconds: 10
+            failureThreshold: 5
       volumes:
         - name: artifacts
           persistentVolumeClaim:

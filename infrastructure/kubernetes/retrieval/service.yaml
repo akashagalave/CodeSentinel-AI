@@ -3,10 +3,14 @@ kind: Service
 metadata:
   name: retrieval-svc
   namespace: codesentinel
+  labels:
+    app: retrieval
+    app.kubernetes.io/part-of: codesentinel
 spec:
   selector:
     app: retrieval
   ports:
-    - port: 8002
+    - name: http
+      port: 8002
       targetPort: 8002
   type: ClusterIP

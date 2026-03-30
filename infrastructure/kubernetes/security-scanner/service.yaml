@@ -1,1 +1,16 @@
-
+apiVersion: v1
+kind: Service
+metadata:
+  name: security-scanner-svc
+  namespace: codesentinel
+  labels:
+    app: security-scanner
+    app.kubernetes.io/part-of: codesentinel
+spec:
+  selector:
+    app: security-scanner
+  ports:
+    - name: http
+      port: 8004
+      targetPort: 8004
+  type: ClusterIP

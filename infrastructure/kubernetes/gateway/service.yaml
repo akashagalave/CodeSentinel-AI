@@ -5,11 +5,13 @@ metadata:
   namespace: codesentinel
   labels:
     app: gateway
+    app.kubernetes.io/part-of: codesentinel
 spec:
   selector:
     app: gateway
   ports:
     - name: http
-      port: 8000
+      port: 80
       targetPort: 8000
-  type: LoadBalancer   # External IP — webhook URL points here
+      protocol: TCP
+  type: LoadBalancer

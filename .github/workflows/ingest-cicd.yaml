@@ -1,6 +1,7 @@
 name: Ingest Pipeline
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -40,6 +41,7 @@ jobs:
           echo "GITHUB_TOKEN=${{ secrets.GH_TOKEN }}" >> $GITHUB_ENV
           echo "DAGSHUB_REPO_OWNER=${{ secrets.DAGSHUB_REPO_OWNER }}" >> $GITHUB_ENV
           echo "DAGSHUB_REPO_NAME=${{ secrets.DAGSHUB_REPO_NAME }}" >> $GITHUB_ENV
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
 
       - name: Run DVC pipeline
         working-directory: ingestion-pipeline

@@ -1,1 +1,53 @@
-
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-client
+  namespace: codesentinel
+  labels:
+    app: github-client
+    app.kubernetes.io/part-of: codesentinel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: github-client
+  template:
+    metadata:
+      labels:
+        app: github-client
+        app.kubernetes.io/part-of: codesentinel
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8006"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: github-client
+          image: 618015514032.dkr.ecr.us-east-1.amazonaws.com/codesentinel/github-client:latest
+          ports:
+            - containerPort: 8006
+              name: http
+          envFrom:
+            - secretRef:
+                name: codesentinel-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8006
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8006
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3

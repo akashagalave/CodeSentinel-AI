@@ -3,10 +3,14 @@ kind: Service
 metadata:
   name: orchestrator-svc
   namespace: codesentinel
+  labels:
+    app: orchestrator
+    app.kubernetes.io/part-of: codesentinel
 spec:
   selector:
     app: orchestrator
   ports:
-    - port: 8001
+    - name: http
+      port: 8001
       targetPort: 8001
-  type: ClusterIP   # Internal only — gateway calls this
+  type: ClusterIP
