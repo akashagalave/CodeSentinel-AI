@@ -1,4 +1,3 @@
-# services/gateway/app/main.py
 import time
 import sys
 from contextlib import asynccontextmanager
@@ -21,7 +20,7 @@ from services.gateway.app.webhook_handler import (
 
 logger = get_logger("gateway_main")
 
-# ── Prometheus metrics ──────────────────────────────────────────
+
 webhooks_received = Counter("gateway_webhooks_total", "Total webhooks received", ["action"])
 webhooks_queued   = Counter("gateway_queued_total", "Webhooks sent to orchestrator")
 webhooks_skipped  = Counter("gateway_skipped_total", "Webhooks skipped (wrong action)")
@@ -34,11 +33,7 @@ webhook_latency   = Histogram(
 
 
 async def run_review_background(job: PRReviewJob):
-    """
-    Background task — calls Orchestrator with the PR job.
-    Runs AFTER gateway already returned 200 to GitHub.
-    GitHub doesn't wait for this — it already got its response.
-    """
+
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
@@ -82,39 +77,23 @@ app = FastAPI(
 
 @app.post("/webhook/github", response_model=WebhookResponse)
 async def github_webhook(request: Request, background_tasks: BackgroundTasks):
-    """
-    Main entry point — receives GitHub PR webhook.
 
-    Flow:
-    1. Read raw body (needed for HMAC verification)
-    2. Verify HMAC signature (security)
-    3. Parse payload → extract PR info
-    4. Filter: only process opened/synchronize/reopened
-    5. Fetch PR diff from GitHub API
-    6. Return 200 immediately ← GitHub gets this fast
-    7. BackgroundTask calls Orchestrator (async, GitHub doesn't wait)
-    """
     start = time.time()
     payload_bytes = await request.body()
 
-    # ── Security: verify signature ──────────────────────────────
     signature = request.headers.get("X-Hub-Signature-256", "")
     if not verify_github_signature(payload_bytes, signature):
         webhooks_failed.inc()
         logger.warning("Webhook rejected: invalid signature")
         raise HTTPException(status_code=403, detail="Invalid webhook signature")
 
-    # ── Parse payload ───────────────────────────────────────────
     payload = await request.json()
     pr_info = parse_webhook_payload(payload)
     action  = pr_info["action"]
 
     webhooks_received.labels(action=action).inc()
 
-    # ── Filter: only review on these actions ────────────────────
-    # opened     = new PR
-    # synchronize = new commits pushed to existing PR
-    # reopened   = PR was closed and reopened
+
     reviewable_actions = {"opened", "synchronize", "reopened"}
     if action not in reviewable_actions:
         webhooks_skipped.inc()
@@ -132,7 +111,6 @@ async def github_webhook(request: Request, background_tasks: BackgroundTasks):
         webhooks_failed.inc()
         raise HTTPException(status_code=400, detail="Missing repo or pr_number in payload")
 
-    # ── Fetch PR diff ───────────────────────────────────────────
     diff = await fetch_pr_diff(repo, pr_number)
     if not diff:
         logger.warning(f"Empty diff for {repo}#{pr_number} — skipping")
@@ -143,7 +121,6 @@ async def github_webhook(request: Request, background_tasks: BackgroundTasks):
             message="Empty diff — nothing to review",
         )
 
-    # ── Build job ───────────────────────────────────────────────
     session_id = f"{repo}#{pr_number}#{head_sha[:8]}"
     job = PRReviewJob(
         repo=repo,
@@ -153,7 +130,6 @@ async def github_webhook(request: Request, background_tasks: BackgroundTasks):
         session_id=session_id,
     )
 
-    # ── Queue background task ───────────────────────────────────
     background_tasks.add_task(run_review_background, job)
     webhooks_queued.inc()
 
@@ -167,8 +143,6 @@ async def github_webhook(request: Request, background_tasks: BackgroundTasks):
         f"latency={latency:.3f}s"
     )
 
-    # ── Return 200 immediately ──────────────────────────────────
-    # GitHub receives this fast — doesn't wait for actual review
     return WebhookResponse(
         status="queued",
         pr_number=pr_number,

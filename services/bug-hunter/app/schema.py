@@ -1,4 +1,4 @@
-# services/bug-hunter/app/schema.py
+
 from pydantic import BaseModel
 from typing import Literal
 

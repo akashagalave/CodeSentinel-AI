@@ -1,5 +1,3 @@
-# services/bug-hunter/app/cache.py
-# Simple in-memory cache — no heavy dependencies
 import hashlib
 import sys
 from pathlib import Path

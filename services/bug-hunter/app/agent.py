@@ -1,8 +1,4 @@
-# services/bug-hunter/app/agent.py
-"""
-Bug Hunter Agent — calls GPT-4o with structured JSON output.
-Returns list of BugFinding objects.
-"""
+
 import json
 import os
 import time
@@ -26,19 +22,9 @@ def run_bug_hunter(
     diff: str,
     context_chunks: list[str],
 ) -> tuple[list[BugFinding], float, int]:
-    """
-    Run Bug Hunter on PR diff with codebase context.
 
-    Args:
-        diff: PR unified diff text
-        context_chunks: top-5 similar functions from Retrieval Service
-
-    Returns:
-        (findings, cost_usd, total_tokens_used)
-    """
     start = time.time()
 
-    # ── Build context string ─────────────────────────────────────
     if context_chunks:
         context = "\n\n--- Similar function from codebase ---\n\n".join(
             context_chunks[:5]
@@ -46,41 +32,39 @@ def run_bug_hunter(
     else:
         context = "No similar functions found in codebase."
 
-    # ── Compress if too large ─────────────────────────────────────
+  
     context = compress_if_needed(
         context,
         max_tokens=settings.max_tokens_per_call,
         model=settings.llm_model,
     )
 
-    # ── Pre-flight token count ────────────────────────────────────
+
     diff_tokens    = count_tokens(diff[:3000], settings.llm_model)
     context_tokens = count_tokens(context, settings.llm_model)
     logger.info(f"Pre-flight: diff={diff_tokens} context={context_tokens} tokens")
 
-    # ── Build prompt ──────────────────────────────────────────────
+  
     prompt = ChatPromptTemplate.from_messages([
         ("system", BUG_SYSTEM),
         ("human", BUG_HUMAN),
     ])
 
-    # ── LLM call ──────────────────────────────────────────────────
+  
     llm = ChatOpenAI(
         model=settings.llm_model,
-        temperature=0.1,       # Low = deterministic. Bug finding needs consistency.
+        temperature=0.1,       
         api_key=settings.openai_api_key or os.getenv("OPENAI_API_KEY"),
     )
 
     try:
         response = (prompt | llm).invoke({
-            "diff":    diff[:3000],   # limit diff size
+            "diff":    diff[:3000],   
             "context": context,
         })
 
         content = response.content.strip()
 
-        # ── Parse JSON response ────────────────────────────────────
-        # GPT sometimes wraps in ```json ... ``` — strip it
         if content.startswith("```"):
             parts = content.split("```")
             content = parts[1]
@@ -89,11 +73,10 @@ def run_bug_hunter(
 
         raw = json.loads(content)
 
-        # Handle both array and {"findings": [...]} formats
         if isinstance(raw, dict):
             raw = raw.get("findings", [])
 
-        # ── Build findings, filter by confidence ──────────────────
+  
         findings = []
         for item in raw:
             try:
@@ -103,7 +86,6 @@ def run_bug_hunter(
             except Exception as e:
                 logger.warning(f"Invalid finding format: {e} — skipping")
 
-        # ── Track cost ─────────────────────────────────────────────
         usage      = response.response_metadata.get("token_usage", {})
         tokens_in  = usage.get("prompt_tokens", diff_tokens + context_tokens)
         tokens_out = usage.get("completion_tokens", 100)

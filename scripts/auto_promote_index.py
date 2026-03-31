@@ -1,6 +1,3 @@
-# scripts/auto_promote_index.py
-# Called by ingest-cicd.yaml after dvc repro + dvc push
-# Reads RAGAS results and promotes index to Production if passing
 
 import json
 import os
@@ -28,7 +25,7 @@ def main():
     scores = report.get("ragas_scores", {})
     print(f"RAGAS passed: faithfulness={scores.get('faithfulness', 0):.3f}")
 
-    # Find latest MLflow run and promote
+  
     try:
         import dagshub
         import mlflow
@@ -43,7 +40,6 @@ def main():
         client = MlflowClient()
         model_name = "codesentinel-index"
 
-        # Get latest Staging version
         versions = client.get_latest_versions(model_name, stages=["Staging"])
         if not versions:
             print("No Staging version found — nothing to promote")

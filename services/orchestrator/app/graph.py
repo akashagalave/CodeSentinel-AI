@@ -1,13 +1,3 @@
-# services/orchestrator/app/graph.py
-"""
-LangGraph StateGraph — the orchestration brain.
-
-Graph structure:
-  START → retrieve_context → parallel_review → aggregate → post_review → END
-
-parallel_review fires all 3 agents simultaneously using asyncio.gather.
-Each node reads from ReviewState and writes back to it.
-"""
 import asyncio
 import sys
 import time
@@ -25,7 +15,6 @@ from services.orchestrator.app.config import settings
 logger = get_logger("orchestrator_graph")
 
 
-# ── Node 1: Retrieve context ────────────────────────────────────
 
 async def retrieve_context(state: ReviewState) -> ReviewState:
     """
@@ -60,7 +49,6 @@ async def retrieve_context(state: ReviewState) -> ReviewState:
     return state
 
 
-# ── Node 2: Parallel review ─────────────────────────────────────
 
 async def call_agent(
     client:      httpx.AsyncClient,
@@ -68,10 +56,7 @@ async def call_agent(
     state:       ReviewState,
     agent_name:  str,
 ) -> tuple[str, list[dict], float]:
-    """
-    Call a single agent service.
-    Returns (agent_name, findings, cost_usd).
-    """
+
     try:
         resp = await client.post(
             f"{url}/review",
@@ -106,24 +91,17 @@ async def call_agent(
 
 
 async def parallel_review(state: ReviewState) -> ReviewState:
-    """
-    Fire all 3 agents SIMULTANEOUSLY using asyncio.gather.
 
-    Why asyncio.gather not sequential?
-    Sequential: Bug Hunter 15s + Security 20s + Perf 10s = 45s total
-    Parallel:   max(Bug Hunter 15s, Security 20s, Perf 10s) = 20s total
-    Saves 25 seconds per review.
-    """
     start = time.time()
     logger.info(f"Starting parallel review: {state['repo']}#{state['pr_number']}")
 
     async with httpx.AsyncClient(timeout=settings.agent_timeout_seconds) as client:
-        # Fire all 3 simultaneously — asyncio.gather waits for ALL to complete
+     
         results = await asyncio.gather(
             call_agent(client, settings.bug_hunter_url,       state, "bug-hunter"),
             call_agent(client, settings.security_scanner_url, state, "security-scanner"),
             call_agent(client, settings.perf_advisor_url,     state, "perf-advisor"),
-            return_exceptions=True,   # Don't crash if one agent fails
+            return_exceptions=True,  
         )
 
     total_cost = 0.0
@@ -156,8 +134,6 @@ async def parallel_review(state: ReviewState) -> ReviewState:
     return state
 
 
-# ── Node 3: Aggregate ───────────────────────────────────────────
-
 async def aggregate(state: ReviewState) -> ReviewState:
     """Merge + dedup + sort + build markdown."""
     result = aggregate_findings(
@@ -173,10 +149,10 @@ async def aggregate(state: ReviewState) -> ReviewState:
     return state
 
 
-# ── Node 4: Post review ─────────────────────────────────────────
+
 
 async def post_review(state: ReviewState) -> ReviewState:
-    """Send final findings to GitHub Client Service."""
+  
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
@@ -210,22 +186,18 @@ async def post_review(state: ReviewState) -> ReviewState:
     return state
 
 
-# ── Build the LangGraph ─────────────────────────────────────────
 
 def build_review_graph() -> StateGraph:
-    """
-    Build and compile the LangGraph StateGraph.
-    Returns compiled graph ready to invoke.
-    """
+
     graph = StateGraph(ReviewState)
 
-    # Add nodes
+    
     graph.add_node("retrieve_context", retrieve_context)
     graph.add_node("parallel_review",  parallel_review)
     graph.add_node("aggregate",        aggregate)
     graph.add_node("post_review",      post_review)
 
-    # Add edges — linear flow
+    
     graph.add_edge(START,              "retrieve_context")
     graph.add_edge("retrieve_context", "parallel_review")
     graph.add_edge("parallel_review",  "aggregate")
@@ -235,5 +207,4 @@ def build_review_graph() -> StateGraph:
     return graph.compile()
 
 
-# Module-level compiled graph — built once at startup
 review_graph = build_review_graph()

@@ -1,4 +1,4 @@
-# services/security-scanner/app/prompts.py
+
 
 SECURITY_SYSTEM = """You are an expert security code reviewer specializing in OWASP Top 10 vulnerabilities.
 

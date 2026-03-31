@@ -1,4 +1,4 @@
-# services/security-scanner/app/main.py
+
 import time
 import sys
 from contextlib import asynccontextmanager

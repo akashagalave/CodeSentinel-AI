@@ -1,4 +1,4 @@
-# services/security-scanner/app/cost_tracker.py
+
 import os
 import sys
 from pathlib import Path

@@ -1,17 +1,4 @@
-# services/github-client/app/check_run.py
-"""
-GitHub Check-run — the green tick or red X on the PR.
 
-When CodeSentinel finds CRITICAL issues:
-  → Check-run status = failure
-  → Merge button shows red X
-  → Developer CANNOT merge until they fix critical issues
-
-When no critical issues:
-  → Check-run status = success
-  → Merge button shows green tick
-  → Developer can merge
-"""
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,15 +20,12 @@ def create_check_run(
     total_cost_usd:    float,
     review_latency_ms: float,
 ) -> int:
-    """
-    Create GitHub Check-run on the PR commit.
-    Returns check_run_id (0 if failed).
-    """
+
     if not settings.github_token:
         logger.warning("No GITHUB_TOKEN — skipping check run")
         return 0
 
-    # Determine status based on findings
+   
     if has_critical:
         conclusion = "failure"
         title      = "CodeSentinel: CRITICAL issues found — merge blocked"
@@ -52,7 +36,7 @@ def create_check_run(
         summary    = "Review findings posted as PR comment. No critical issues blocking merge."
     else:
         conclusion = "success"
-        title      = "CodeSentinel: No issues found ✅"
+        title      = "CodeSentinel: No issues found "
         summary    = "Clean code review. All checks passed."
 
     try:
@@ -73,7 +57,7 @@ def create_check_run(
                     f"- Total findings: {total_findings}\n"
                     f"- Review cost: ${total_cost_usd:.4f}\n"
                     f"- Review time: {review_latency_ms:.0f}ms\n"
-                    f"- Status: {'🔴 BLOCKED' if has_critical else '✅ PASSED'}"
+                    f"- Status: {' BLOCKED' if has_critical else ' PASSED'}"
                 ),
             },
         )

@@ -1,13 +1,4 @@
-# services/security-scanner/app/agent.py
-"""
-Security Scanner Agent.
-Two-step: Semgrep static scan → GPT-4o semantic reasoning.
 
-Why two steps?
-  Semgrep alone: many false positives (can't understand context)
-  GPT-4o alone: might miss syntax-level injection patterns
-  Together: Semgrep finds candidates, GPT-4o filters FPs and adds context
-"""
 import json
 import os
 import time
@@ -34,25 +25,19 @@ def run_security_scanner(
     diff: str,
     context_chunks: list[str],
 ) -> tuple[list[SecurityFinding], float, int]:
-    """
-    Run Security Scanner: Semgrep first, then GPT-4o reasoning.
-    Returns: (findings, cost_usd, tokens_used)
-    """
+
     start = time.time()
 
-    # ── Step 1: Semgrep static scan ───────────────────────────
-    # Fast, rules-based, finds common patterns
     semgrep_results = run_semgrep_scan.invoke({
         "code": diff,
         "language": "python",
     })
     logger.info(f"Semgrep results: {semgrep_results[:200]}")
 
-    # ── Step 2: Build context for GPT-4o ──────────────────────
+  
     context = "\n\n---\n\n".join(context_chunks[:3]) if context_chunks else ""
     context = compress_if_needed(context, max_tokens=3000, model=settings.llm_model)
 
-    # ── Step 3: GPT-4o reasons on Semgrep + diff + context ────
     prompt = ChatPromptTemplate.from_messages([
         ("system", SECURITY_SYSTEM),
         ("human", SECURITY_HUMAN),

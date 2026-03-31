@@ -1,6 +1,3 @@
-# scripts/promote_index.py
-# Manual CLI to promote a specific index version
-# Usage: python scripts/promote_index.py --version 3
 
 import argparse
 import os

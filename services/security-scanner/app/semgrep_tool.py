@@ -1,4 +1,4 @@
-# services/security-scanner/app/semgrep_tool.py
+
 """
 Semgrep OWASP scan as LangChain Tool.
 
@@ -27,22 +27,18 @@ logger = get_logger("semgrep_tool")
 
 @tool
 def run_semgrep_scan(code: str, language: str = "python") -> str:
-    """
-    Run Semgrep OWASP Top 10 security scan on code.
-    Returns JSON string of security findings.
-    Use this to scan code for security vulnerabilities.
-    """
+
     suffix = ".py" if language == "python" else ".js"
 
     try:
-        # Write code to temp file — Semgrep needs a file path
+        
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=suffix, delete=False, encoding="utf-8"
         ) as f:
-            # Extract only added lines from diff (lines starting with +)
+            
             if code.startswith("@@"):
                 added_lines = [
-                    line[1:]   # Remove the leading +
+                    line[1:]   
                     for line in code.split("\n")
                     if line.startswith("+") and not line.startswith("+++")
                 ]
@@ -51,26 +47,25 @@ def run_semgrep_scan(code: str, language: str = "python") -> str:
                 f.write(code)
             temp_path = f.name
 
-        # Run Semgrep with OWASP Top 10 rules
         result = subprocess.run(
             [
                 "semgrep",
-                "--config", "p/owasp-top-ten",   # OWASP rules
-                "--config", "p/python",           # Python-specific rules
-                "--json",                          # JSON output for parsing
-                "--quiet",                         # No progress output
-                "--no-git-ignore",                 # Scan temp file
+                "--config", "p/owasp-top-ten",   
+                "--config", "p/python",           
+                "--json",                          
+                "--quiet",                         
+                "--no-git-ignore",                
                 temp_path,
             ],
             capture_output=True,
             text=True,
-            timeout=30,   # 30 second timeout — don't block review
+            timeout=30,   
         )
 
-        # Clean up temp file
+        
         Path(temp_path).unlink(missing_ok=True)
 
-        # Semgrep returns 0 (no findings) or 1 (findings found) — both are normal
+        
         if result.returncode not in (0, 1):
             logger.warning(f"Semgrep error: {result.stderr[:200]}")
             return json.dumps({"findings": [], "error": result.stderr[:200]})
@@ -84,8 +79,7 @@ def run_semgrep_scan(code: str, language: str = "python") -> str:
         for r in data.get("results", []):
             severity = r.get("extra", {}).get("severity", "WARNING")
 
-            # Only include HIGH and CRITICAL severity findings
-            # Filter out low-severity noise before sending to GPT-4o
+      
             if severity not in ("ERROR", "WARNING"):
                 continue
 

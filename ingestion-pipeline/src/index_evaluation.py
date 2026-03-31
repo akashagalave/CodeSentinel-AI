@@ -1,9 +1,3 @@
-# ingestion-pipeline/src/index_evaluation.py
-"""
-DVC Stage 4: RAGAS evaluation — quality gate.
-MLflow tracking via DagsHub.
-EXIT CODE 1 if below threshold → CI/CD blocked.
-"""
 import json
 import os
 import sys
@@ -35,7 +29,7 @@ def init_mlflow():
 
 
 def evaluate_retrieval_quality(params: dict) -> dict:
-    """Evaluate retrieval quality using ChromaDB test queries."""
+   
     import chromadb
     from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
@@ -53,7 +47,7 @@ def evaluate_retrieval_quality(params: dict) -> dict:
         logger.error(f"Failed to load ChromaDB: {e}")
         return {"faithfulness": 0.0, "context_precision": 0.0}
 
-    # Real code pattern test queries
+  
     test_queries = [
         "authenticate user with username and password",
         "database connection pool setup",
@@ -101,7 +95,6 @@ def main():
     logger.info("Running retrieval quality evaluation...")
     scores = evaluate_retrieval_quality(params)
 
-    # ── Log to DagsHub MLflow ─────────────────────────────────
     init_mlflow()
     mlflow.set_experiment("codesentinel-evaluation")
 
@@ -113,7 +106,7 @@ def main():
         mlflow.log_param("faithfulness_threshold", faith_thr)
         mlflow.log_param("precision_threshold", prec_thr)
 
-    # ── Check thresholds ──────────────────────────────────────
+   
     failed = []
     if scores["faithfulness"] < faith_thr:
         failed.append(
@@ -147,7 +140,7 @@ def main():
         logger.error("\nQUALITY GATE FAILED — Deployment blocked!")
         for f in failed:
             logger.error(f"  ✗ {f}")
-        sys.exit(1)  # ← blocks CI/CD
+        sys.exit(1)  
 
     logger.info("\n✓ Quality gate passed!")
     logger.info("=" * 60)

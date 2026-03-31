@@ -1,4 +1,3 @@
-# services/gateway/app/schema.py
 from pydantic import BaseModel
 
 

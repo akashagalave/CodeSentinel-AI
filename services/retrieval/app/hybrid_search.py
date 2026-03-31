@@ -1,4 +1,4 @@
-# services/retrieval/app/hybrid_search.py
+
 import re
 import time
 import sys
@@ -41,7 +41,6 @@ def hybrid_search(query: str, k: int = 5) -> list[dict]:
     alpha         = settings.hybrid_alpha
     dense_top_k   = settings.dense_top_k
 
-    # ── Step 1: Dense retrieval ─────────────────────────────────
     dense_raw = collection.query(
         query_texts=[query],
         n_results=dense_top_k,
@@ -59,7 +58,6 @@ def hybrid_search(query: str, k: int = 5) -> list[dict]:
 
     dense_rank = {id_: rank for rank, id_ in enumerate(dense_ids)}
 
-    # ── Step 2: Sparse retrieval (BM25) ─────────────────────────
     query_tokens = tokenize_query(query)
     bm25         = bm25_data["bm25"]
     doc_ids      = bm25_data["doc_ids"]
@@ -74,7 +72,7 @@ def hybrid_search(query: str, k: int = 5) -> list[dict]:
 
     sparse_rank = {doc_ids[i]: rank for rank, i in enumerate(sorted_bm25)}
 
-    # ── Step 3: RRF Fusion ───────────────────────────────────────
+
     all_ids = set(dense_rank.keys()) | set(sparse_rank.keys())
 
     rrf_scores = {}
@@ -106,7 +104,7 @@ def hybrid_search(query: str, k: int = 5) -> list[dict]:
         logger.warning(f"No candidates for query: {query[:50]}")
         return []
 
-    # ── Step 4: CrossEncoder Reranking ──────────────────────────
+ 
     pairs  = [(query, c["content"][:512]) for c in candidates]
     scores = cross_encoder.predict(pairs)
 

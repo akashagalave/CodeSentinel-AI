@@ -1,4 +1,4 @@
-# services/github-client/app/schema.py
+
 from pydantic import BaseModel
 
 

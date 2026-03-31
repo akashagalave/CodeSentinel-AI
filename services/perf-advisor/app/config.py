@@ -1,4 +1,4 @@
-# services/perf-advisor/app/config.py
+
 from pydantic_settings import BaseSettings
 
 
@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     langfuse_public_key:  str   = ""
     langfuse_secret_key:  str   = ""
     langfuse_host:        str   = "https://us.cloud.langfuse.com"
-    llm_model:            str   = "gpt-4o-mini"   # ← cheaper than GPT-4o
+    llm_model:            str   = "gpt-4o-mini"   
     max_tokens_per_call:  int   = 5000
     confidence_threshold: float = 0.75
 

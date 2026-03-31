@@ -1,7 +1,3 @@
-# ingestion-pipeline/dvc.yaml
-# 4-stage reproducible pipeline
-# Run from project root: cd ingestion-pipeline && dvc repro
-# Or: dvc repro ingestion-pipeline/dvc.yaml
 
 stages:
 

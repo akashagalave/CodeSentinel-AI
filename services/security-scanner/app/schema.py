@@ -1,4 +1,4 @@
-# services/security-scanner/app/schema.py
+
 from pydantic import BaseModel
 from typing import Literal
 
@@ -11,8 +11,8 @@ class SecurityFinding(BaseModel):
     description:    str
     fix_suggestion: str
     confidence:     float
-    owasp_category: str = ""   # e.g. "A03:2021 - Injection"
-    cwe_id:         str = ""   # e.g. "CWE-89"
+    owasp_category: str = ""   
+    cwe_id:         str = ""   
     finding_type:   str = "security"
 
 

@@ -1,4 +1,4 @@
-# services/security-scanner/app/config.py
+
 from pydantic_settings import BaseSettings
 
 

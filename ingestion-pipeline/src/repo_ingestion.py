@@ -1,23 +1,4 @@
-# ingestion-pipeline/src/repo_ingestion.py
-"""
-DVC Stage 1: GitHub repos clone karke source files extract karo.
 
-Input:  params.yaml → ingestion.target_repos
-Output: data/raw/{owner}_{repo}/{file_path}.json
-
-Har JSON file mein:
-  - source_code: actual Python code
-  - file_path: relative path in repo
-  - language: python
-  - repo: owner/repo string
-  - lines: line count
-  - sha: file hash (for change detection)
-
-Why GitHub API instead of git clone?
-  - git clone = entire repo history download (slow, large)
-  - GitHub API = only current files (fast, efficient)
-  - Rate limit: 5000 requests/hour with token
-"""
 import json
 import os
 import sys
@@ -28,14 +9,12 @@ import yaml
 from dotenv import load_dotenv
 from github import Github, GithubException
 
-# Add project root to path so shared/ can be imported
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from shared.logger import get_logger
 
 load_dotenv()
 logger = get_logger("repo_ingestion")
 
-# Paths relative to project root (DVC runs from project root)
 RAW_DATA_DIR = Path("data/raw")
 PARAMS_FILE = Path(__file__).parent.parent / "params.yaml"
 REPORTS_DIR = Path("reports")
@@ -47,24 +26,21 @@ def load_params() -> dict:
 
 
 def repo_name_to_folder(url: str) -> str:
-    """
-    URL to safe folder name.
-    https://github.com/pallets/flask → pallets_flask
-    """
+
     parts = url.rstrip("/").split("/")
     return f"{parts[-2]}_{parts[-1]}"
 
 
 def should_include_file(file_path: str, params: dict) -> bool:
-    """Check if file should be included based on exclude patterns."""
+  
     p = Path(file_path)
 
-    # Check exclude patterns
+    
     for pattern in params["ingestion"]["exclude_patterns"]:
         if p.match(pattern):
             return False
 
-    # Check language
+   
     lang_ext = {"python": ".py", "javascript": ".js"}
     allowed = [
         lang_ext[lang]
@@ -75,10 +51,7 @@ def should_include_file(file_path: str, params: dict) -> bool:
 
 
 def ingest_single_repo(repo_url: str, gh: Github, params: dict) -> dict:
-    """
-    Single repo se saari files extract karo.
-    Returns stats dict.
-    """
+
     folder_name = repo_name_to_folder(repo_url)
     owner_repo = "/".join(repo_url.split("/")[-2:])
     out_dir = RAW_DATA_DIR / folder_name
@@ -98,7 +71,6 @@ def ingest_single_repo(repo_url: str, gh: Github, params: dict) -> dict:
     try:
         repo = gh.get_repo(owner_repo)
 
-        # BFS traversal — get all files
         queue = list(repo.get_contents(""))
         while queue:
             item = queue.pop(0)
@@ -109,7 +81,7 @@ def ingest_single_repo(repo_url: str, gh: Github, params: dict) -> dict:
                 except GithubException:
                     continue
             else:
-                # File — check if we want it
+                
                 if not should_include_file(item.path, params):
                     stats["files_skipped"] += 1
                     continue
@@ -123,7 +95,7 @@ def ingest_single_repo(repo_url: str, gh: Github, params: dict) -> dict:
                     source_code = item.decoded_content.decode("utf-8", errors="ignore")
                     line_count = source_code.count("\n") + 1
 
-                    # Determine language
+                   
                     lang = "python" if item.path.endswith(".py") else "javascript"
 
                     file_data = {
@@ -136,7 +108,7 @@ def ingest_single_repo(repo_url: str, gh: Github, params: dict) -> dict:
                         "sha": item.sha,
                     }
 
-                    # Save as JSON — replace / with __ for safe filename
+                    
                     safe_name = item.path.replace("/", "__")
                     out_file = out_dir / f"{safe_name}.json"
 
@@ -146,13 +118,12 @@ def ingest_single_repo(repo_url: str, gh: Github, params: dict) -> dict:
                     stats["files_extracted"] += 1
                     stats["total_lines"] += line_count
 
-                    # Progress log every 50 files
+                    
                     if stats["files_extracted"] % 50 == 0:
                         logger.info(
                             f"  {owner_repo}: {stats['files_extracted']} files extracted..."
                         )
 
-                    # Rate limiting — be gentle with GitHub API
                     time.sleep(0.1)
 
                 except Exception as e:
@@ -179,7 +150,7 @@ def main():
 
     params = load_params()
 
-    # GitHub token required
+    
     token = os.getenv("GITHUB_TOKEN")
     if not token:
         logger.error("GITHUB_TOKEN not set in environment!")
@@ -188,7 +159,7 @@ def main():
 
     gh = Github(token)
 
-    # Verify token works
+   
     try:
         user = gh.get_user()
         logger.info(f"GitHub authenticated as: {user.login}")
@@ -213,14 +184,12 @@ def main():
             total_files += stats["files_extracted"]
             total_lines += stats["total_lines"]
 
-            # Sleep between repos — avoid rate limit
             time.sleep(2)
 
         except Exception as e:
             logger.error(f"Failed to ingest {repo_url}: {e}")
             continue
 
-    # Save ingestion report
     report = {
         "repos_ingested": len(all_stats),
         "total_files_extracted": total_files,

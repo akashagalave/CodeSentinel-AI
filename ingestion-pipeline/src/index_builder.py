@@ -1,4 +1,3 @@
-# ingestion-pipeline/src/index_builder.py
 import json
 import os
 import pickle
@@ -85,7 +84,6 @@ def main():
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    # ── MLflow init (with fallback) ────────────────────────────
     init_mlflow()
 
     run_id = None
@@ -105,7 +103,7 @@ def main():
         active_run = None
 
     try:
-        # ── ChromaDB index ─────────────────────────────────────
+  
         logger.info(f"Loading model: {embed_model}")
         chroma_path = str(ARTIFACTS_DIR / "chroma_db")
         client = PersistentClient(path=chroma_path)
@@ -139,7 +137,7 @@ def main():
         embed_time = time.time() - embed_start
         logger.info(f"ChromaDB done in {embed_time:.0f}s")
 
-        # ── BM25 index ─────────────────────────────────────────
+    
         logger.info("Building BM25...")
         bm25_start       = time.time()
         tokenized_corpus = [tokenize_for_bm25(d.page_content) for d in docs]
@@ -159,7 +157,6 @@ def main():
             f.stat().st_size for f in Path(chroma_path).rglob("*") if f.is_file()
         ) / 1e6
 
-        # ── Log metrics ────────────────────────────────────────
         if active_run:
             try:
                 mlflow.log_metrics({

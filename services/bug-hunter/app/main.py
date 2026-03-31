@@ -1,4 +1,4 @@
-# services/bug-hunter/app/main.py
+
 import time
 import sys
 from contextlib import asynccontextmanager
@@ -17,7 +17,7 @@ from services.bug_hunter.app.schema import HealthResponse
 
 logger = get_logger("bug_hunter_main")
 
-# ── Prometheus ──────────────────────────────────────────────────
+
 agent_latency = Histogram(
     "bug_hunter_latency_seconds",
     "Bug Hunter agent latency",
@@ -35,7 +35,7 @@ reviews_failed = Counter("bug_hunter_reviews_failed",  "Total failed reviews")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Bug Hunter Service starting...")
-    initialize_cache()   # GPTCache setup
+    initialize_cache()   
     logger.info("Bug Hunter Service ready!")
     yield
     logger.info("Bug Hunter Service shutting down...")

@@ -1,6 +1,3 @@
-# ingestion-pipeline/params.yaml
-# Central config for ALL 4 DVC pipeline stages
-# DVC reads this — agar koi value change karo toh wo stage automatically re-runs
 
 # ─── Stage 1: Repository Ingestion ────────────────────────────
 ingestion:

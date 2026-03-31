@@ -1,4 +1,4 @@
-# services/perf-advisor/app/schema.py
+
 from pydantic import BaseModel
 from typing import Literal
 
@@ -11,7 +11,7 @@ class PerfFinding(BaseModel):
     description:      str
     fix_suggestion:   str
     confidence:       float
-    estimated_impact: str = "medium"   # "low", "medium", "high"
+    estimated_impact: str = "medium"  
     finding_type:     str = "performance"
 
 

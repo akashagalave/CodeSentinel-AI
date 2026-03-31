@@ -1,26 +1,3 @@
-# ingestion-pipeline/src/ast_parser.py
-"""
-DVC Stage 2: Tree-sitter AST parsing — extract functions at boundary level.
-
-WHY THIS IS THE KEY FILE:
-  Naive text chunking (RecursiveCharacterTextSplitter):
-    "def authenticate(username, pass  ← chunk cut here
-    word, db_session):
-        user = db.query..."
-    LLM gets half a function → wrong analysis → false positives
-
-  Tree-sitter AST chunking (this file):
-    def authenticate(username, password, db_session):
-        user = db.query(User).filter(...).first()
-        if not user: raise AuthError()
-        return user
-    Every chunk = 1 complete function → LLM has full context → correct analysis
-
-  Result: +21% retrieval recall on 30-PR golden evaluation set
-
-Input:  data/raw/**/*.json  (from Stage 1)
-Output: data/processed/all_functions.jsonl  (one function per line)
-"""
 from __future__ import annotations
 
 import json
@@ -37,7 +14,7 @@ from shared.logger import get_logger
 
 logger = get_logger("ast_parser")
 
-# Build Tree-sitter Python language
+
 PY_LANGUAGE = Language(tspython.language())
 
 RAW_DIR = Path("data/raw")
@@ -52,20 +29,10 @@ def get_python_parser() -> Parser:
 
 
 def node_text(node: Node, source_bytes: bytes) -> str:
-    """Extract raw text for a Tree-sitter node."""
     return source_bytes[node.start_byte:node.end_byte].decode("utf-8", errors="ignore")
 
 
 def compute_cyclomatic_complexity(node: Node) -> int:
-    """
-    Cyclomatic complexity = 1 + number of decision points.
-    Decision points: if, elif, for, while, try, except, with, and, or
-
-    Why track this?
-      High complexity functions are more likely to have bugs.
-      We tag them so agents prioritize reviewing them.
-      Also a good interview talking point.
-    """
     complexity = 1
     decision_node_types = {
         "if_statement",
@@ -91,7 +58,6 @@ def compute_cyclomatic_complexity(node: Node) -> int:
 
 
 def extract_docstring(node: Node, source_bytes: bytes) -> Optional[str]:
-    """Extract docstring from function body if present."""
     for child in node.children:
         if child.type == "block":
             for stmt in child.children:
@@ -99,20 +65,20 @@ def extract_docstring(node: Node, source_bytes: bytes) -> Optional[str]:
                     for expr in stmt.children:
                         if expr.type == "string":
                             raw = node_text(expr, source_bytes)
-                            # Clean up triple quotes
+                         
                             return raw.strip('"""').strip("'''").strip()
     return None
 
 
 def extract_params(node: Node, source_bytes: bytes) -> list[str]:
-    """Extract parameter names from function definition."""
+
     params = []
     for child in node.children:
         if child.type == "parameters":
             for p in child.children:
                 if p.type in ("identifier", "typed_parameter", "default_parameter"):
                     param_text = node_text(p, source_bytes)
-                    # Clean type annotations and defaults
+
                     name = param_text.split(":")[0].split("=")[0].strip()
                     if name not in ("self", "cls", "(", ")", ",", "*", "**"):
                         params.append(name)
@@ -124,20 +90,7 @@ def extract_python_functions(
     file_path: str,
     params: dict,
 ) -> list[dict]:
-    """
-    Extract ALL functions from Python source using Tree-sitter AST.
 
-    Returns list of function dicts, each containing:
-      - function_name, class_name, full_name
-      - body: the function code
-      - body_with_context: function + N lines before/after
-      - start_line, end_line, lines_count
-      - params: list of parameter names
-      - docstring: if present
-      - cyclomatic_complexity: decision point count
-      - imports: top-level imports (for context)
-      - is_async: True if async def
-    """
     parser = get_python_parser()
     source_bytes = source_code.encode("utf-8")
     tree = parser.parse(source_bytes)
@@ -150,9 +103,7 @@ def extract_python_functions(
     functions = []
 
     def visit(node: Node, class_name: Optional[str] = None):
-        """Recursively visit AST nodes."""
-
-        # Track class names for methods
+  
         if node.type == "class_definition":
             cn = None
             for child in node.children:
@@ -163,9 +114,9 @@ def extract_python_functions(
                 visit(child, cn)
             return
 
-        # Process function definitions
+
         if node.type in ("function_definition", "async_function_definition"):
-            # Get function name
+   
             func_name = None
             for child in node.children:
                 if child.type == "identifier":
@@ -177,32 +128,30 @@ def extract_python_functions(
                     visit(child, class_name)
                 return
 
-            # Line range (0-indexed from Tree-sitter)
             start_line = node.start_point[0]
             end_line = node.end_point[0]
             func_line_count = end_line - start_line + 1
 
-            # Filter by size
+      
             if func_line_count < min_lines or func_line_count > max_lines:
                 for child in node.children:
                     visit(child, class_name)
                 return
 
-            # Extract function body
+ 
             func_body = node_text(node, source_bytes)
 
-            # Body with neighbor context (lines before + after)
+ 
             ctx_start = max(0, start_line - neighbor_lines)
             ctx_end = min(len(source_lines), end_line + neighbor_lines + 1)
             body_with_context = "\n".join(source_lines[ctx_start:ctx_end])
 
-            # Extract metadata
+
             docstring = extract_docstring(node, source_bytes)
             param_list = extract_params(node, source_bytes)
             complexity = compute_cyclomatic_complexity(node)
             is_async = node.type == "async_function_definition"
 
-            # Top-level imports (first 20 lines for context)
             imports = [
                 line.strip()
                 for line in source_lines[:20]
@@ -217,7 +166,7 @@ def extract_python_functions(
                 "language": "python",
                 "body": func_body,
                 "body_with_context": body_with_context,
-                "start_line": start_line + 1,   # Convert to 1-indexed
+                "start_line": start_line + 1,  
                 "end_line": end_line + 1,
                 "lines_count": func_line_count,
                 "params": param_list,
@@ -227,7 +176,7 @@ def extract_python_functions(
                 "is_async": is_async,
             })
 
-        # Recurse into children
+
         for child in node.children:
             visit(child, class_name)
 
@@ -236,7 +185,7 @@ def extract_python_functions(
 
 
 def parse_file(file_data: dict, params: dict) -> list[dict]:
-    """Parse one raw file JSON and return extracted functions."""
+   
     language = file_data.get("language", "python")
     source_code = file_data.get("source_code", "")
     file_path = file_data.get("file_path", "unknown")
@@ -249,9 +198,9 @@ def parse_file(file_data: dict, params: dict) -> list[dict]:
         if language == "python":
             functions = extract_python_functions(source_code, file_path, params)
         else:
-            return []  # JS support can be added later
+            return []  
 
-        # Add repo to each function
+     
         for fn in functions:
             fn["repo"] = repo
 
@@ -272,7 +221,7 @@ def main():
 
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Find all raw JSON files
+   
     raw_files = list(RAW_DIR.rglob("*.json"))
     logger.info(f"Found {len(raw_files)} raw files to parse")
 
@@ -300,13 +249,13 @@ def main():
         logger.error("No functions extracted! Check data/raw/ has content.")
         sys.exit(1)
 
-    # Save as JSONL — one function per line
+  
     out_file = PROCESSED_DIR / "all_functions.jsonl"
     with open(out_file, "w", encoding="utf-8") as f:
         for fn in all_functions:
             f.write(json.dumps(fn, ensure_ascii=False) + "\n")
 
-    # Compute stats
+   
     complexities = [fn["cyclomatic_complexity"] for fn in all_functions]
     avg_complexity = sum(complexities) / len(complexities)
     high_complexity = params["parsing"]["complexity_threshold_high"]

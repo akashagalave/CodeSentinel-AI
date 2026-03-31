@@ -1,14 +1,3 @@
-# ingestion-pipeline/src/quality_monitor.py
-"""
-Monitor false positive rate from user feedback.
-Same pattern as drift_detection.py in AutoML Brain.
-
-AutoML Brain: PSI drift > 0.2 → retrain.flag → training-cicd triggered
-CodeSentinel: FP rate > 0.25 → reingest.flag → ingest-cicd triggered
-
-FP rate = (thumbs_down ratings) / (total ratings) over last N days
-Source: Langfuse user feedback scores
-"""
 import json
 import os
 import sys
@@ -29,10 +18,7 @@ FLAG_FILE = Path("reingest.flag")
 
 
 def get_fp_rate_from_langfuse(window_days: int) -> float:
-    """
-    Query Langfuse for user thumbs feedback.
-    Returns false positive rate (0.0 to 1.0).
-    """
+
     try:
         from langfuse import Langfuse
 

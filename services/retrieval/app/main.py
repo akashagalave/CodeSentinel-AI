@@ -1,9 +1,4 @@
-# services/retrieval/app/main.py
-"""
-Retrieval Service — FastAPI app.
-Single endpoint: POST /search
-Called by Orchestrator before running agents.
-"""
+
 import time
 import sys
 from contextlib import asynccontextmanager
@@ -21,7 +16,6 @@ from services.retrieval.app.schema import SearchRequest, SearchResponse, HealthR
 
 logger = get_logger("retrieval_main")
 
-# ── Prometheus metrics ──────────────────────────────────────────
 search_latency = Histogram(
     "retrieval_search_latency_seconds",
     "Hybrid search latency in seconds",
@@ -39,12 +33,9 @@ search_errors = Counter(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Load models at startup, cleanup at shutdown.
-    FastAPI lifespan = modern replacement for @app.on_event("startup").
-    """
+
     logger.info("Retrieval Service starting up...")
-    load_all()   # Load ChromaDB + BM25 + CrossEncoder ONCE
+    load_all()  
     logger.info("Retrieval Service ready!")
     yield
     logger.info("Retrieval Service shutting down...")
@@ -60,10 +51,7 @@ app = FastAPI(
 
 @app.post("/search", response_model=SearchResponse)
 async def search(request: SearchRequest):
-    """
-    Hybrid search endpoint.
-    Called by Orchestrator with PR diff → returns top-k relevant code chunks.
-    """
+
     search_requests.inc()
     start = time.time()
 
@@ -90,7 +78,7 @@ async def search(request: SearchRequest):
 
 @app.get("/health", response_model=HealthResponse)
 async def health():
-    """Health check — K8s liveness + readiness probe calls this."""
+   
     return HealthResponse(
         status="healthy",
         service="retrieval",
@@ -100,5 +88,4 @@ async def health():
 
 @app.get("/metrics")
 async def metrics():
-    """Prometheus scrapes this endpoint every 15 seconds."""
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

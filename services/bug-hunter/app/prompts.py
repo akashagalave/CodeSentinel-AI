@@ -1,4 +1,4 @@
-# services/bug-hunter/app/prompts.py
+
 
 BUG_SYSTEM = """You are an expert code reviewer specializing in finding software bugs.
 

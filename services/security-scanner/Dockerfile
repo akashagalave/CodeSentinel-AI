@@ -1,9 +1,8 @@
-# services/security-scanner/Dockerfile
+
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Semgrep needs these system packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \

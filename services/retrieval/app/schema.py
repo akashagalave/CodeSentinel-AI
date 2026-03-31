@@ -1,4 +1,4 @@
-# services/retrieval/app/schema.py
+
 from pydantic import BaseModel
 
 

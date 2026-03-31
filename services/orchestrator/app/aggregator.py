@@ -1,13 +1,4 @@
-# services/orchestrator/app/aggregator.py
-"""
-Aggregator — merges findings from 3 agents.
 
-Steps:
-1. Merge all findings into one list
-2. Deduplicate (same file + overlapping line range)
-3. Sort by severity (CRITICAL first)
-4. Format as GitHub markdown comment
-"""
 import sys
 from pathlib import Path
 
@@ -27,19 +18,12 @@ SEVERITY_EMOJI = {
 
 
 def _lines_overlap(start1: int, end1: int, start2: int, end2: int) -> bool:
-    """Check if two line ranges overlap (for deduplication)."""
+    
     return not (end1 < start2 or end2 < start1)
 
 
 def deduplicate(findings: list[dict]) -> list[dict]:
-    """
-    Remove duplicate findings on the same file + overlapping lines.
 
-    Why needed?
-    Bug Hunter and Security Scanner might BOTH flag the same SQL injection.
-    Without dedup: developer sees same comment twice → annoying.
-    With dedup: keep the highest-severity one, remove the other.
-    """
     unique = []
     for f in findings:
         is_dup = False
@@ -51,7 +35,7 @@ def deduplicate(findings: list[dict]) -> list[dict]:
                     u.get("line_start", 0), u.get("line_end", 0),
                 )
             ):
-                # Duplicate found — keep the higher severity one
+                
                 if SEVERITY_ORDER.get(f.get("severity", "LOW"), 3) < \
                    SEVERITY_ORDER.get(u.get("severity", "LOW"), 3):
                     unique.remove(u)
@@ -64,7 +48,7 @@ def deduplicate(findings: list[dict]) -> list[dict]:
 
 
 def sort_by_severity(findings: list[dict]) -> list[dict]:
-    """Sort findings: CRITICAL → HIGH → MEDIUM → LOW."""
+   
     return sorted(
         findings,
         key=lambda f: SEVERITY_ORDER.get(f.get("severity", "LOW"), 3),
@@ -72,19 +56,7 @@ def sort_by_severity(findings: list[dict]) -> list[dict]:
 
 
 def build_markdown(findings: list[dict], repo: str, pr_number: int) -> str:
-    """
-    Build GitHub PR comment markdown from findings.
 
-    Format:
-    ## CodeSentinel AI Review
-    **3 issues found** (1 critical, 2 high)
-
-    ### 🔴 CRITICAL — SQL Injection
-    **File:** `src/db.py` (lines 42-45)
-    **Issue:** SQL query built with string formatting...
-    **Fix:** Use parameterized queries...
-    ---
-    """
     if not findings:
         return (
             "## CodeSentinel AI Review ✅\n\n"
@@ -97,14 +69,14 @@ def build_markdown(findings: list[dict], repo: str, pr_number: int) -> str:
     medium   = sum(1 for f in findings if f.get("severity") == "MEDIUM")
     low      = sum(1 for f in findings if f.get("severity") == "LOW")
 
-    # Header
+    
     lines = [
         "## CodeSentinel AI Review",
         "",
         f"**{len(findings)} issue{'s' if len(findings) > 1 else ''} found**",
     ]
 
-    # Severity summary badges
+   
     summary_parts = []
     if critical: summary_parts.append(f"🔴 {critical} critical")
     if high:     summary_parts.append(f"🟠 {high} high")
@@ -115,7 +87,6 @@ def build_markdown(findings: list[dict], repo: str, pr_number: int) -> str:
 
     lines.append("")
 
-    # Each finding
     for f in findings:
         severity = f.get("severity", "MEDIUM")
         emoji    = SEVERITY_EMOJI.get(severity, "⚪")
@@ -127,7 +98,7 @@ def build_markdown(findings: list[dict], repo: str, pr_number: int) -> str:
         lines.append(f"**Issue:** {f.get('description', '')}")
         lines.append(f"**Fix:** {f.get('fix_suggestion', '')}")
 
-        # Optional fields
+       
         if f.get("owasp_category"):
             lines.append(f"**OWASP:** {f['owasp_category']}")
         if f.get("cwe_id"):
@@ -152,11 +123,7 @@ def aggregate_findings(
     repo:              str,
     pr_number:         int,
 ) -> dict:
-    """
-    Main aggregation function.
-    Returns dict with all_findings, markdown, has_critical.
-    """
-    # Merge all 3 agent outputs
+
     all_raw = bug_findings + security_findings + perf_findings
     logger.info(
         f"Aggregating: {len(bug_findings)} bugs + "
@@ -164,17 +131,17 @@ def aggregate_findings(
         f"{len(perf_findings)} perf = {len(all_raw)} total"
     )
 
-    # Deduplicate
+    
     deduped = deduplicate(all_raw)
     logger.info(f"After dedup: {len(deduped)} unique findings")
 
-    # Sort
+    
     sorted_findings = sort_by_severity(deduped)
 
-    # Build markdown
+    
     markdown = build_markdown(sorted_findings, repo, pr_number)
 
-    # Check for critical
+  
     has_critical = any(f.get("severity") == "CRITICAL" for f in sorted_findings)
 
     return {

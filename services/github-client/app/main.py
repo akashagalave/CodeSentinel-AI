@@ -1,4 +1,4 @@
-# services/github-client/app/main.py
+
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -39,20 +39,16 @@ app = FastAPI(
 
 @app.post("/post-review", response_model=PostReviewResponse)
 async def post_review(request: PostReviewRequest):
-    """
-    Post review results to GitHub PR.
-    1. Post markdown comment on PR
-    2. Create Check-run (green tick or red X)
-    """
+
     try:
-        # Post PR comment
+        
         comment_url = post_pr_comment(
             repo=              request.repo,
             pr_number=         request.pr_number,
             findings_markdown= request.findings_markdown,
         )
 
-        # Create Check-run
+        
         check_run_id = create_check_run(
             repo=              request.repo,
             head_sha=          request.head_sha,

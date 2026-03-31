@@ -1,7 +1,3 @@
-# ragas_eval.py
-# Root-level RAGAS quality gate — called by ingest-cicd.yaml
-# Same as ingestion-pipeline/src/index_evaluation.py
-# but runnable from project root
 
 import json
 import sys

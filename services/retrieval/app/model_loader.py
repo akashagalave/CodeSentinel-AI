@@ -1,13 +1,4 @@
-# services/retrieval/app/model_loader.py
-"""
-Load ALL heavy models ONCE at startup — shared across all requests.
 
-Why singletons?
-  CodeBERT = 500MB. ChromaDB index = 1-2GB.
-  Loading per-request = 30+ seconds per review.
-  Module-level singletons = load once at startup,
-  serve thousands of requests from memory.
-"""
 import pickle
 import sys
 from pathlib import Path
@@ -22,7 +13,7 @@ from services.retrieval.app.config import settings
 
 logger = get_logger("model_loader")
 
-# Module-level singletons — None until load_all() called
+
 _collection   = None
 _bm25_data    = None
 _cross_encoder = None
@@ -30,18 +21,15 @@ _loaded       = False
 
 
 def load_all():
-    """
-    Load ChromaDB + BM25 + CrossEncoder at FastAPI startup.
-    Called ONCE from lifespan context manager in main.py.
-    """
+
     global _collection, _bm25_data, _cross_encoder, _loaded
 
     if _loaded:
-        return  # Already loaded — don't reload
+        return  
 
     logger.info("Loading models at startup (one-time only)...")
 
-    # ── ChromaDB ────────────────────────────────────────────────
+  
     logger.info(f"  Loading ChromaDB from: {settings.chromadb_path}")
     client = chromadb.PersistentClient(path=settings.chromadb_path)
     embed_fn = SentenceTransformerEmbeddingFunction(
@@ -54,13 +42,12 @@ def load_all():
     doc_count = _collection.count()
     logger.info(f"  ChromaDB loaded: {doc_count:,} documents")
 
-    # ── BM25 ────────────────────────────────────────────────────
+   
     logger.info(f"  Loading BM25 from: {settings.bm25_index_path}")
     with open(settings.bm25_index_path, "rb") as f:
         _bm25_data = pickle.load(f)
     logger.info(f"  BM25 loaded: {_bm25_data['corpus_size']:,} documents")
 
-    # ── CrossEncoder ─────────────────────────────────────────────
     logger.info(f"  Loading CrossEncoder: {settings.rerank_model}")
     _cross_encoder = CrossEncoder(settings.rerank_model)
     logger.info("  CrossEncoder loaded")

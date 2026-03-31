@@ -1,10 +1,4 @@
-# services/perf-advisor/app/agent.py
-"""
-Performance Advisor Agent.
-Uses GPT-4o-mini — 10x cheaper than GPT-4o.
-Why mini? Pattern recognition (N+1, O(n²)) doesn't need GPT-4o's
-deep reasoning. Pattern matching is a simpler task.
-"""
+
 import json
 import os
 import time
@@ -30,10 +24,7 @@ def run_perf_advisor(
     diff: str,
     context_chunks: list[str],
 ) -> tuple[list[PerfFinding], float, int]:
-    """
-    Run Performance Advisor with GPT-4o-mini.
-    Returns: (findings, cost_usd, tokens_used)
-    """
+
     start = time.time()
 
     context = "\n\n---\n\n".join(context_chunks[:3]) if context_chunks else ""
@@ -48,9 +39,9 @@ def run_perf_advisor(
         ("human", PERF_HUMAN),
     ])
 
-    # GPT-4o-mini — 10x cheaper, sufficient for pattern detection
+    
     llm = ChatOpenAI(
-        model=settings.llm_model,    # "gpt-4o-mini"
+        model=settings.llm_model,    
         temperature=0.1,
         api_key=settings.openai_api_key or os.getenv("OPENAI_API_KEY"),
     )

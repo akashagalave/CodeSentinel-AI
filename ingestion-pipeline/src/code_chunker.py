@@ -1,13 +1,3 @@
-# ingestion-pipeline/src/code_chunker.py
-"""
-Convert parsed AST function dicts into LangChain Documents.
-Each function = one Document with rich metadata.
-
-Why LangChain Documents?
-  ChromaDB accepts LangChain Documents directly.
-  Metadata stored separately from content → filterable queries.
-  e.g. "find functions in flask/app.py with complexity > 5"
-"""
 import sys
 from pathlib import Path
 
@@ -20,20 +10,12 @@ logger = get_logger("code_chunker")
 
 
 def function_to_document(fn: dict) -> Document:
-    """
-    Convert one function dict → LangChain Document.
 
-    page_content: what gets embedded (function body + docstring)
-    metadata: searchable fields (repo, file, complexity, lines, etc.)
-    """
-    # Build embeddable content
     content_parts = []
 
-    # Include docstring as comment if present
     if fn.get("docstring"):
         content_parts.append(f"# {fn['full_name']}\n# {fn['docstring']}")
 
-    # Body with surrounding context lines
     content_parts.append(fn.get("body_with_context", fn["body"]))
 
     page_content = "\n".join(content_parts)
@@ -58,14 +40,14 @@ def function_to_document(fn: dict) -> Document:
 
 
 def build_documents(functions: list[dict]) -> list[Document]:
-    """Convert list of function dicts to list of LangChain Documents."""
+   
     docs = []
     skipped = 0
 
     for fn in functions:
         try:
             doc = function_to_document(fn)
-            # Skip trivially short content
+            
             if len(doc.page_content.strip()) < 50:
                 skipped += 1
                 continue

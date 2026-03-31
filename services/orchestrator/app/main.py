@@ -1,4 +1,4 @@
-# services/orchestrator/app/main.py
+
 import time
 import uuid
 import sys
@@ -50,19 +50,14 @@ app = FastAPI(
 
 @app.post("/review", response_model=ReviewResult)
 async def review(request: ReviewRequest):
-    """
-    Main review endpoint.
-    Called by Gateway BackgroundTask.
-    Runs full LangGraph pipeline:
-      retrieve_context → parallel_review → aggregate → post_review
-    """
+
     review_total.inc()
     start = time.time()
 
-    # Generate session_id if not provided
+    
     session_id = request.session_id or f"{request.repo}#{request.pr_number}#{uuid.uuid4().hex[:8]}"
 
-    # Build initial state
+    
     initial_state: ReviewState = {
         "repo":               request.repo,
         "pr_number":          request.pr_number,
@@ -86,7 +81,7 @@ async def review(request: ReviewRequest):
     }
 
     try:
-        # Run the full LangGraph pipeline
+        
         final_state = await review_graph.ainvoke(initial_state)
 
         latency_s = time.time() - start

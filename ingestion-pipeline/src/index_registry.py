@@ -1,9 +1,3 @@
-# ingestion-pipeline/src/index_registry.py
-"""
-MLflow registry for index versions.
-Same pattern as model_registry.py in AutoML Brain.
-DagsHub se MLflow tracking connected hai.
-"""
 import os
 import sys
 from pathlib import Path
@@ -23,7 +17,7 @@ REGISTERED_MODEL_NAME = "codesentinel-index"
 
 
 def init_mlflow():
-    """DagsHub se MLflow initialize karo."""
+
     dagshub.init(
         repo_owner=os.getenv("DAGSHUB_REPO_OWNER", "akashagalaveaaa1"),
         repo_name=os.getenv("DAGSHUB_REPO_NAME", "CodeSentinel-AI"),
@@ -37,20 +31,18 @@ def get_client() -> MlflowClient:
 
 
 def register_index(run_id: str, ragas_scores: dict) -> str:
-    """Register index from MLflow run to model registry."""
+   
     client = get_client()
 
-    # Create registered model if not exists
     try:
         client.create_registered_model(REGISTERED_MODEL_NAME)
         logger.info(f"Created registered model: {REGISTERED_MODEL_NAME}")
     except Exception:
-        pass  # Already exists
+        pass  
 
     model_uri = f"runs:/{run_id}/artifacts"
     mv = mlflow.register_model(model_uri, REGISTERED_MODEL_NAME)
 
-    # Tag with RAGAS scores for visibility in DagsHub UI
     client.set_model_version_tag(
         REGISTERED_MODEL_NAME, mv.version,
         "ragas_faithfulness",
@@ -67,7 +59,7 @@ def register_index(run_id: str, ragas_scores: dict) -> str:
 
 
 def transition_to_production(version: str):
-    """Promote index version to Production."""
+
     client = get_client()
     client.transition_model_version_stage(
         name=REGISTERED_MODEL_NAME,
@@ -79,7 +71,7 @@ def transition_to_production(version: str):
 
 
 def transition_to_staging(version: str):
-    """Promote index version to Staging."""
+   
     client = get_client()
     client.transition_model_version_stage(
         name=REGISTERED_MODEL_NAME,
@@ -90,7 +82,7 @@ def transition_to_staging(version: str):
 
 
 def get_production_version() -> str | None:
-    """Get current Production index version."""
+  
     client = get_client()
     try:
         versions = client.get_latest_versions(
