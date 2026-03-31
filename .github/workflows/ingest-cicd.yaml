@@ -47,10 +47,13 @@ jobs:
       - name: Create required directories
         run: |
           mkdir -p data/raw data/processed artifacts reports
+          echo "Directories created:"
+          ls -la
 
       - name: Run DVC pipeline
-        working-directory: ingestion-pipeline
-        run: dvc repro
+        run: |
+          cd ingestion-pipeline
+          dvc repro --no-cache
 
       - name: Push index to S3
         run: dvc push
