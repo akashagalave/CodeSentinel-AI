@@ -44,6 +44,10 @@ jobs:
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
           echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> $GITHUB_ENV
 
+      - name: Create required directories
+        run: |
+          mkdir -p data/raw data/processed artifacts reports
+
       - name: Run DVC pipeline
         working-directory: ingestion-pipeline
         run: dvc repro
