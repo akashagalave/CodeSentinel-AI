@@ -42,7 +42,7 @@ PY_LANGUAGE = Language(tspython.language())
 
 RAW_DIR = Path("data/raw")
 PROCESSED_DIR = Path("data/processed")
-PARAMS_FILE = Path("ingestion-pipeline/params.yaml")
+PARAMS_FILE = Path(__file__).parent.parent / "params.yaml"
 
 
 def get_python_parser() -> Parser:

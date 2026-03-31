@@ -37,7 +37,7 @@ logger = get_logger("repo_ingestion")
 
 # Paths relative to project root (DVC runs from project root)
 RAW_DATA_DIR = Path("data/raw")
-PARAMS_FILE = Path("ingestion-pipeline/params.yaml")
+PARAMS_FILE = Path(__file__).parent.parent / "params.yaml"
 REPORTS_DIR = Path("reports")
 
 

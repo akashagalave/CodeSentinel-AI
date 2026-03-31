@@ -23,7 +23,7 @@ logger = get_logger("index_evaluation")
 EVAL_DIR      = Path("data/eval")
 REPORTS_DIR   = Path("reports")
 ARTIFACTS_DIR = Path("artifacts")
-PARAMS_FILE   = Path("ingestion-pipeline/params.yaml")
+PARAMS_FILE = Path(__file__).parent.parent / "params.yaml"
 
 
 def init_mlflow():

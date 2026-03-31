@@ -24,7 +24,7 @@ from shared.logger import get_logger
 load_dotenv()
 logger = get_logger("quality_monitor")
 
-PARAMS_FILE = Path("ingestion-pipeline/params.yaml")
+PARAMS_FILE = Path(__file__).parent.parent / "params.yaml"
 FLAG_FILE = Path("reingest.flag")
 
 

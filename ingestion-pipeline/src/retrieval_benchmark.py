@@ -25,7 +25,7 @@ logger = get_logger("retrieval_benchmark")
 
 ARTIFACTS_DIR = Path("artifacts")
 REPORTS_DIR = Path("reports")
-PARAMS_FILE = Path("ingestion-pipeline/params.yaml")
+PARAMS_FILE = Path(__file__).parent.parent / "params.yaml"
 
 # Golden query set — manually curated
 # Format: (query, expected_function_name_substring)
