@@ -33,7 +33,7 @@ jobs:
 
       - name: Configure DVC remote
         run: |
-          dvc remote add -d codesentinel-s3 s3://codesentinel-dvc-akash/dvc-store
+          dvc remote add -d -f codesentinel-s3 s3://codesentinel-dvc-akash/dvc-store
           dvc remote modify codesentinel-s3 region us-east-1
 
       - name: Set environment variables
