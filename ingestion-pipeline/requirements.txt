@@ -1,1 +1,54 @@
+# Root requirements.txt — Development only
+# Production mein har service ka apna requirements.txt use hoga
 
+# Core
+fastapi
+uvicorn
+httpx
+pydantic-settings
+python-dotenv
+
+# LLM / Agents
+langchain
+langchain-openai
+langchain-community
+langgraph
+langfuse
+tiktoken
+litellm
+
+# RAG / Vector
+chromadb
+sentence-transformers
+rank-bm25
+
+# Code Parsing
+tree-sitter
+tree-sitter-python
+tree-sitter-javascript
+
+# Evaluation
+ragas
+deepeval
+
+# MLOps / Pipeline
+mlflow
+dvc
+dvc-s3
+dagshub
+# GitHub
+PyGithub
+pyyaml
+# Security
+semgrep
+
+# Cost Optimization
+gptcache
+llmlingua
+
+# Monitoring
+prometheus-client
+
+# Testing / Dev
+pytest
+ruff
