@@ -24,7 +24,7 @@ jobs:
           pip install dvc dvc-s3
           pip install -r ingestion-pipeline/requirements.txt
 
-      - name: Configure AWS
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -36,12 +36,13 @@ jobs:
           dvc remote add -d codesentinel-s3 s3://codesentinel-dvc-akash/dvc-store
           dvc remote modify codesentinel-s3 region us-east-1
 
-      - name: Set environment
+      - name: Set environment variables
         run: |
           echo "GITHUB_TOKEN=${{ secrets.GH_TOKEN }}" >> $GITHUB_ENV
           echo "DAGSHUB_REPO_OWNER=${{ secrets.DAGSHUB_REPO_OWNER }}" >> $GITHUB_ENV
           echo "DAGSHUB_REPO_NAME=${{ secrets.DAGSHUB_REPO_NAME }}" >> $GITHUB_ENV
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> $GITHUB_ENV
 
       - name: Run DVC pipeline
         working-directory: ingestion-pipeline
