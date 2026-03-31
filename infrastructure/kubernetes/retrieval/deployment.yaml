@@ -21,6 +21,12 @@ spec:
         prometheus.io/port: "8002"
         prometheus.io/path: "/metrics"
     spec:
+      securityContext:
+        fsGroup: 1000
+
+      nodeSelector:
+        kubernetes.io/os: linux
+
       initContainers:
         - name: download-artifacts
           image: amazon/aws-cli:latest
@@ -32,6 +38,7 @@ spec:
               aws s3 cp s3://codesentinel-dvc-akash/artifacts/chroma_db /artifacts/chroma_db --recursive
               echo "Downloading BM25 index from S3..."
               aws s3 cp s3://codesentinel-dvc-akash/artifacts/bm25_index.pkl /artifacts/bm25_index.pkl
+              chmod -R 777 /artifacts
               echo "All artifacts downloaded!"
           env:
             - name: AWS_DEFAULT_REGION
@@ -39,6 +46,7 @@ spec:
           volumeMounts:
             - name: artifacts
               mountPath: /artifacts
+
       containers:
         - name: retrieval
           image: 618015514032.dkr.ecr.us-east-1.amazonaws.com/codesentinel/retrieval:latest
@@ -79,6 +87,7 @@ spec:
             initialDelaySeconds: 120
             periodSeconds: 10
             failureThreshold: 5
+
       volumes:
         - name: artifacts
           persistentVolumeClaim:
